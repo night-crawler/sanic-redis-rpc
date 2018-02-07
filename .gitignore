@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Directories
+.idea
+.cache
+build/
+dist/
+*.egg-info/
+annotations.json
+monkeytype.sqlite3
+tests/test_app/migrations
+
+# Files
+consul
+tests/test.sqlite
+.pytest_cache

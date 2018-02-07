@@ -1,0 +1,5 @@
+-r ./base.txt
+
+pypandoc
+pytest
+pytest-sanic
