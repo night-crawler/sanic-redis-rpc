@@ -4,3 +4,4 @@ click
 furl
 hiredis
 aioredis
+ujson

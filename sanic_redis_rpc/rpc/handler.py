@@ -1,10 +1,10 @@
 import typing as t
-from asyncio import Future, coroutine
+import asyncio
 
 from sanic.request import Request
 
 from sanic_redis_rpc.rpc import exceptions
-from sanic_redis_rpc.rpc.generic import RpcRequest, RpcRequestProcessor
+from sanic_redis_rpc.rpc.generic import RpcRequest, RpcRequestProcessor, RpcBatchRequest
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper, load_json
 
 
@@ -17,6 +17,10 @@ class RedisRpcRequest(RpcRequest):
                 message='Pool name should be specified in `method`, e.g. `redis_0.get`'
             )
 
+    @property
+    def pool_name(self):
+        return self.method_path[0]
+
 
 class RedisRpcRequestProcessor(RpcRequestProcessor):
     @property
@@ -24,14 +28,16 @@ class RedisRpcRequestProcessor(RpcRequestProcessor):
         # skip pool
         return super(RedisRpcRequestProcessor, self).method_path[1:]
 
+    async def response(self):
+        result = self.apply()
+        if asyncio.iscoroutine(result):
+            result = await result
 
-class RpcBatchRequest:
-    def __init__(self, data):
-        self._data: t.List[t.Dict[str, t.Any]] = data
-        self._validate()
-
-    def _validate(self):
-        pass
+        return {
+            'id': self._rpc_request.id,
+            'jsonrpc': self._rpc_request.jsonrpc,
+            'result': result,
+        }
 
 
 class RedisRpcHandler:
@@ -46,19 +52,14 @@ class RedisRpcHandler:
 
     async def handle_single(self):
         try:
-            redis_instance = await self._pools_wrapper.get_redis(self._rpc_request.method_path[0])
+            redis_instance = await self._pools_wrapper.get_redis(self._rpc_request.pool_name)
         except KeyError:
             raise exceptions.RpcInvalidParamsError(
                 id=self._rpc_request.id, data=self._rpc_request.params,
-                message=f'Pool with name `{self._rpc_request.method_path[0]}` does not exist'
+                message=f'Pool with name `{self._rpc_request.pool_name}` does not exist'
             )
-
         processor = RedisRpcRequestProcessor(self._rpc_request, redis_instance)
-        result = processor.apply()
-        # print('POZIDAALSKDLKAJS KLDFASD', type(result), result)
-        # if isinstance(result, Future):
-        #     print('FUTURE!!!@#!@')
-        return result
+        return await processor.response()
 
     async def handle(self):
         pass

@@ -107,9 +107,20 @@ class RpcRequestProcessor:
         result = self._method(*args, **kwargs)
         return result
 
-    def process(self):
+    def response(self):
         return {
             'id': self._rpc_request.id,
             'jsonrpc': self._rpc_request.jsonrpc,
             'result': self.apply(),
         }
+
+
+class RpcBatchRequest:
+    def __init__(self, data):
+        self._data: t.List[t.Dict[str, t.Any]] = data
+        self._validate()
+        self._requests = []
+
+    def _validate(self):
+        for single_rpc_call_bundle in self._data:
+            rpc_request = RpcRequest(single_rpc_call_bundle)

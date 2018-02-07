@@ -1,5 +1,6 @@
 import typing as t
 import json
+
 from uuid import uuid4
 
 import pytest
@@ -218,5 +219,6 @@ class RedisRpcHandlerTest:
     async def test__handle_single(self, app):
         body = _mk_rpc_bundle('redis_0.set', {'key': 'qwe', 'value': 1}, dump=True)
         h = handler.RedisRpcHandler(AttrObject(body=body, app=app))
-        res = h.handle_single()
-        print('!!!', type(res))
+        res = await h.handle_single()
+        assert res['result'] is True
+        assert res['id'] in body

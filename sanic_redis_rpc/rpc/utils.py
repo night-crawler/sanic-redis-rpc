@@ -17,6 +17,11 @@ except ImportError:
     else:
         json_loads = json.loads
 
+try:
+    from ujson import dumps as json_dumps
+except BaseException:
+    from json import dumps as json_dumps
+
 
 def load_json(body):
     if not body:
