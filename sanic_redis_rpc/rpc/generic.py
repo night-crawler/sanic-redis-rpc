@@ -1,5 +1,4 @@
 import typing as t
-from collections import OrderedDict
 from inspect import Signature, BoundArguments
 
 from sanic_redis_rpc.rpc import exceptions
@@ -68,6 +67,33 @@ class RpcRequest:
         return self.method_path[-1]
 
 
+class RpcBatchRequest:
+    def __init__(self, data, request_cls: t.Type[RpcRequest] = RpcRequest):
+        self._data: t.List[t.Dict[str, t.Any]] = data
+        self._request_cls = request_cls
+        self._rpc_requests = self._validate()
+
+    def _validate(self):
+        if not isinstance(self._data, list):
+            raise exceptions.RpcInvalidRequestError(message='Batch RPC call should be a list')
+
+        if not self._data:
+            raise exceptions.RpcInvalidRequestError(message='Request is empty')
+
+        return [
+            self._request_cls(single_rpc_call_bundle, silent=True)
+            for single_rpc_call_bundle in self._data
+        ]
+
+    @property
+    def count(self) -> int:
+        return len(self._rpc_requests)
+
+    @property
+    def requests(self) -> t.List[RpcRequest]:
+        return self._rpc_requests
+
+
 class RpcRequestProcessor:
     def __init__(self, rpc_request: RpcRequest, instance):
         self._rpc_request = rpc_request
@@ -127,21 +153,3 @@ class RpcRequestProcessor:
         }
 
 
-class RpcBatchRequest:
-    def __init__(self, data):
-        self._data: t.List[t.Dict[str, t.Any]] = data
-        self._request_response_map = self._validate()
-
-    def _validate(self):
-        if not isinstance(self._data, list):
-            raise exceptions.RpcInvalidRequestError(message='Batch RPC call should be a list')
-
-        if not self._data:
-            raise exceptions.RpcInvalidRequestError(message='Request is empty')
-
-        request_response_map = OrderedDict.fromkeys([
-            RpcRequest(single_rpc_call_bundle, silent=True)
-            for single_rpc_call_bundle in self._data
-        ])
-
-        return request_response_map

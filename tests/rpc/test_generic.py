@@ -35,6 +35,13 @@ class RpcBatchRequestTest:
         with pytest.raises(exceptions.RpcInvalidRequestError):
             handler.RpcBatchRequest([])
 
+    def test___validate(self):
+        br = handler.RpcBatchRequest([
+            mk_rpc_bundle('add', [1, 2]),
+            mk_rpc_bundle('nested.add_many', [1, 2, 3, 4, 5])
+        ])
+        assert br.count == 2
+
 
 # noinspection PyMethodMayBeStatic,PyShadowingNames
 class RpcRequestProcessorTest:
