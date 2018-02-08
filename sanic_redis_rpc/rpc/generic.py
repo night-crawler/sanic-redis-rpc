@@ -1,5 +1,5 @@
-import collections
 import typing as t
+from collections import OrderedDict
 from inspect import Signature, BoundArguments
 
 from sanic_redis_rpc.rpc import exceptions
@@ -7,12 +7,20 @@ from sanic_redis_rpc.rpc.utils import JSON_RPC_VERSION
 
 
 class RpcRequest:
-    def __init__(self, data: t.Dict[str, t.Any]):
+    def __init__(self, data: t.Dict[str, t.Any], silent: bool=False):
         self._data: t.Dict[str, t.Any] = data
-        self._validate()
+        self.silent = silent
+        self._error = None
+        try:
+            self._validate()
+        except exceptions.RpcError as e:
+            self._error = e
+
+        if self._error and not silent:
+            raise self._error
 
     def _validate(self):
-        if not isinstance(self._data, collections.Mapping):
+        if not isinstance(self._data, dict):
             raise exceptions.RpcInvalidRequestError(id=None, message='Single RPC call should be a mapping')
 
         if not self._data:
@@ -26,6 +34,10 @@ class RpcRequest:
 
         if not self.method:
             raise exceptions.RpcInvalidRequestError(id=self.id, message='No method was specified')
+
+    @property
+    def error(self):
+        return self._error
 
     @property
     def id(self):
@@ -118,9 +130,18 @@ class RpcRequestProcessor:
 class RpcBatchRequest:
     def __init__(self, data):
         self._data: t.List[t.Dict[str, t.Any]] = data
-        self._validate()
-        self._requests = []
+        self._request_response_map = self._validate()
 
     def _validate(self):
-        for single_rpc_call_bundle in self._data:
-            rpc_request = RpcRequest(single_rpc_call_bundle)
+        if not isinstance(self._data, list):
+            raise exceptions.RpcInvalidRequestError(message='Batch RPC call should be a list')
+
+        if not self._data:
+            raise exceptions.RpcInvalidRequestError(message='Request is empty')
+
+        request_response_map = OrderedDict.fromkeys([
+            RpcRequest(single_rpc_call_bundle, silent=True)
+            for single_rpc_call_bundle in self._data
+        ])
+
+        return request_response_map
