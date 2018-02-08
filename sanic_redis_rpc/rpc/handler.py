@@ -25,8 +25,8 @@ class RedisRpcRequestProcessor(RpcRequestProcessor):
     def _get_method_path(self, rpc_request: RpcRequest):
         return super()._get_method_path(rpc_request)[1:]
 
-    async def response(self, rpc_request: RpcRequest):
-        result = self.process(rpc_request)
+    async def process(self, rpc_request: RpcRequest):
+        result = self.apply(rpc_request)
         if asyncio.iscoroutine(result):
             result = await result
 
@@ -47,6 +47,8 @@ class RedisRpcHandler:
         else:
             self._rpc_request = RedisRpcRequest(self._data)
 
+    # async def get_processor(self, ):
+
     async def handle_single(self):
         try:
             redis_instance = await self._pools_wrapper.get_redis(self._rpc_request.pool_name)
@@ -56,7 +58,7 @@ class RedisRpcHandler:
                 message=f'Pool with name `{self._rpc_request.pool_name}` does not exist'
             )
         processor = RedisRpcRequestProcessor(redis_instance)
-        return await processor.response(self._rpc_request)
+        return await processor.process(self._rpc_request)
 
     async def handle(self):
         pass

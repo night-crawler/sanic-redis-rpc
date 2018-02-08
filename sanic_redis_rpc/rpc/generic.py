@@ -114,7 +114,7 @@ class RpcRequestProcessor:
         ba.apply_defaults()
         return ba.args, ba.kwargs
 
-    def process(self, rpc_request: RpcRequest):
+    def apply(self, rpc_request: RpcRequest):
         method = self._get_method(rpc_request)
         signature = self._get_signature(method)
 
@@ -146,9 +146,24 @@ class RpcRequestProcessor:
             )
         return val
 
-    def response(self, rpc_request: RpcRequest) -> t.Dict[str, t.Any]:
+    def process(self, rpc_request: RpcRequest) -> t.Dict[str, t.Any]:
         return {
             'id': rpc_request.id,
             'jsonrpc': rpc_request.jsonrpc,
-            'result': self.process(rpc_request),
+            'result': self.apply(rpc_request),
         }
+
+
+class RpcBatchRequestProcessor:
+    def __init__(self, instance):
+        self._instance = instance
+        self._processor = RpcRequestProcessor(instance)
+
+    def process(self, rpc_batch_request: RpcBatchRequest):
+        results = []
+        for rpc_request in rpc_batch_request.requests:
+            if not rpc_request.error:
+                results.append(self._processor.process(rpc_request))
+            else:
+                results.append(rpc_request.error.as_dict())
+        return results

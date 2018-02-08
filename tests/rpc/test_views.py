@@ -26,6 +26,8 @@ class BlueprintTest:
 
 # noinspection PyMethodMayBeStatic,PyShadowingNames
 class RedisRpcHandlerTest:
+    pytestmark = [pytest.mark.blueprint, pytest.mark.redis, pytest.mark.handler]
+
     async def test_parse_error(self, app):
         with pytest.raises(exceptions.RpcParseError):
             handler.RedisRpcHandler(AttrObject(body='{qwe', app=app))

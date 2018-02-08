@@ -1,26 +1,10 @@
-import json
-import sys
 import typing as t
 from collections import OrderedDict
+from ujson import loads as json_loads
 
 import aioredis
 
 from sanic_redis_rpc.rpc import exceptions
-
-try:
-    from ujson import loads as json_loads
-except ImportError:
-    if sys.version_info[:2] == (3, 5):
-        def json_loads(data):
-            # on Python 3.5 json.loads only supports str not bytes
-            return json.loads(data.decode())
-    else:
-        json_loads = json.loads
-
-try:
-    from ujson import dumps as json_dumps
-except BaseException:
-    from json import dumps as json_dumps
 
 
 def load_json(body):
