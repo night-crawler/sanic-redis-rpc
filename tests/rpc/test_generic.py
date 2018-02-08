@@ -1,3 +1,5 @@
+from inspect import Signature
+
 import pytest
 
 from sanic_redis_rpc.rpc import exceptions
@@ -45,42 +47,49 @@ class RpcBatchRequestTest:
 
 # noinspection PyMethodMayBeStatic,PyShadowingNames
 class RpcRequestProcessorTest:
+    pytestmark = [pytest.mark.rpc, pytest.mark.request, pytest.mark.processor]
+
     def test__get_method(self):
         rpc_request = handler.RpcRequest(mk_rpc_bundle('add', {'a': 1, 'b': 1.1, 'make_negative': True}))
         sample = SampleRpcObject(10)
-        processor = handler.RpcRequestProcessor(rpc_request, sample)
-        assert processor.get_method() == sample.add
+        processor = handler.RpcRequestProcessor(sample)
+        assert processor._get_method(rpc_request) == sample.add
 
         with pytest.raises(exceptions.RpcMethodNotFoundError):
             rpc_request = handler.RpcRequest(mk_rpc_bundle('base', {'a': 1, 'b': 1.1, 'make_negative': True}))
-            processor = handler.RpcRequestProcessor(rpc_request, sample)
-            processor.get_method()
+            processor._get_method(rpc_request)
 
         with pytest.raises(exceptions.RpcMethodNotFoundError):
             rpc_request = handler.RpcRequest(mk_rpc_bundle('nothing', {'qwe': 1}))
-            processor = handler.RpcRequestProcessor(rpc_request, sample)
-            processor.get_method()
+            processor._get_method(rpc_request)
 
     def test__prepare_call_args(self):
         sample = SampleRpcObject(10)
 
-        rpc_request = handler.RpcRequest(mk_rpc_bundle('add', {'a': 1, 'b': 1.1, 'make_negative': True}))
-        processor = handler.RpcRequestProcessor(rpc_request, sample)
-        ca = processor.prepare_call_args()
+        # test dict args
+        processor = handler.RpcRequestProcessor(SampleRpcObject(10))
+        ca = processor._prepare_call_args(
+            Signature.from_callable(sample.add),
+            {'a': 1, 'b': 1.1, 'make_negative': True}
+        )
         assert ca == ((1, 1.1), {'make_negative': True})
 
-        rpc_request = handler.RpcRequest(mk_rpc_bundle('nested.add_many', {'a': 1, 'b': 1.1, 'c': 2}))
-        processor = handler.RpcRequestProcessor(rpc_request, sample)
-        ca = processor.prepare_call_args()
+        ca = processor._prepare_call_args(
+            Signature.from_callable(sample.nested.add_many),
+            {'a': 1, 'b': 1.1, 'c': 2}
+        )
         assert ca == ((1, 1.1), {'c': 2})
 
+    def test__process(self):
         rpc_request = handler.RpcRequest(mk_rpc_bundle('kwonly', [1, 2, 3, 4]))
-        processor = handler.RpcRequestProcessor(rpc_request, sample)
+        processor = handler.RpcRequestProcessor(SampleRpcObject(10))
         with pytest.raises(exceptions.RpcInvalidParamsError):
-            processor.prepare_call_args()
+            processor.process(rpc_request)
 
-    def test__apply(self):
-        sample = SampleRpcObject(10)
         rpc_request = handler.RpcRequest(mk_rpc_bundle('add', {'a': 1, 'b': 1.1, 'make_negative': True}))
-        processor = handler.RpcRequestProcessor(rpc_request, sample)
-        assert processor.apply() == 8
+        assert processor.process(rpc_request) == 8
+
+    def test__response(self):
+        processor = handler.RpcRequestProcessor(SampleRpcObject(10))
+        rpc_request = handler.RpcRequest(mk_rpc_bundle('add', {'a': 1, 'b': 1.1, 'make_negative': True}))
+        assert processor.response(rpc_request)['id'] == rpc_request.id

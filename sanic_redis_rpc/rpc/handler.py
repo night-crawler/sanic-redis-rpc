@@ -23,19 +23,17 @@ class RedisRpcRequest(RpcRequest):
 
 
 class RedisRpcRequestProcessor(RpcRequestProcessor):
-    @property
-    def method_path(self) -> t.List[str]:
-        # skip pool
-        return super(RedisRpcRequestProcessor, self).method_path[1:]
+    def _get_method_path(self, rpc_request: RpcRequest):
+        return super()._get_method_path(rpc_request)[1:]
 
-    async def response(self):
-        result = self.apply()
+    async def response(self, rpc_request: RpcRequest):
+        result = self.process(rpc_request)
         if asyncio.iscoroutine(result):
             result = await result
 
         return {
-            'id': self._rpc_request.id,
-            'jsonrpc': self._rpc_request.jsonrpc,
+            'id': rpc_request.id,
+            'jsonrpc': rpc_request.jsonrpc,
             'result': result,
         }
 
@@ -58,8 +56,8 @@ class RedisRpcHandler:
                 id=self._rpc_request.id, data=self._rpc_request.params,
                 message=f'Pool with name `{self._rpc_request.pool_name}` does not exist'
             )
-        processor = RedisRpcRequestProcessor(self._rpc_request, redis_instance)
-        return await processor.response()
+        processor = RedisRpcRequestProcessor(redis_instance)
+        return await processor.response(self._rpc_request)
 
     async def handle(self):
         pass

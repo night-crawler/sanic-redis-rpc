@@ -95,61 +95,60 @@ class RpcBatchRequest:
 
 
 class RpcRequestProcessor:
-    def __init__(self, rpc_request: RpcRequest, instance):
-        self._rpc_request = rpc_request
+    def __init__(self, instance):
         self._instance = instance
-        self._method = self.get_method()
-        self._signature = Signature.from_callable(self._method)
 
-    @property
-    def method_path(self) -> t.List[str]:
-        return self._rpc_request.method_path
+    @staticmethod
+    def _get_signature(method: t.Callable) -> Signature:
+        return Signature.from_callable(method)
 
-    @property
-    def root_instance(self):
-        return self._instance
+    @staticmethod
+    def _prepare_call_args(signature: Signature, params):
+        args, kwargs = [], {}
+        if isinstance(params, list):
+            args = params
+        else:
+            kwargs = params
 
-    def get_method(self) -> t.Callable:
-        val = self.root_instance
-        for path_item in self.method_path:
+        ba: BoundArguments = signature.bind(*args, **kwargs)
+        ba.apply_defaults()
+        return ba.args, ba.kwargs
+
+    def process(self, rpc_request: RpcRequest):
+        method = self._get_method(rpc_request)
+        signature = self._get_signature(method)
+
+        try:
+            args, kwargs = self._prepare_call_args(signature, rpc_request.params)
+        except TypeError as e:
+            raise exceptions.RpcInvalidParamsError(id=rpc_request.id, data=str(e))
+
+        result = method(*args, **kwargs)
+        return result
+
+    def _get_method_path(self, rpc_request: RpcRequest):
+        return rpc_request.method_path
+
+    def _get_method(self, rpc_request: RpcRequest) -> t.Callable:
+        val = self._instance
+        for path_item in self._get_method_path(rpc_request):
             val = getattr(val, path_item, None)
             if val is None:
                 raise exceptions.RpcMethodNotFoundError(
-                    id=self._rpc_request.id, data=self._rpc_request.method
+                    id=rpc_request.id, data=rpc_request.method,
+                    message=f'Method path`{path_item}` is empty in {rpc_request.method_path}'
                 )
 
         if not callable(val):
             raise exceptions.RpcMethodNotFoundError(
-                id=self._rpc_request.id, data=self._rpc_request.method,
-                message=f'{val} in {self._rpc_request.method} is not callable'
+                id=rpc_request.id, data=rpc_request.method,
+                message=f'{val} in {rpc_request.method} is not callable'
             )
         return val
 
-    def prepare_call_args(self):
-        args, kwargs = [], {}
-        if isinstance(self._rpc_request.params, list):
-            args = self._rpc_request.params
-        else:
-            kwargs = self._rpc_request.params
-
-        try:
-            ba: BoundArguments = self._signature.bind(*args, **kwargs)
-        except TypeError as e:
-            raise exceptions.RpcInvalidParamsError(id=self._rpc_request.id, data=str(e))
-
-        ba.apply_defaults()
-        return ba.args, ba.kwargs
-
-    def apply(self):
-        args, kwargs = self.prepare_call_args()
-        result = self._method(*args, **kwargs)
-        return result
-
-    def response(self):
+    def response(self, rpc_request: RpcRequest) -> t.Dict[str, t.Any]:
         return {
-            'id': self._rpc_request.id,
-            'jsonrpc': self._rpc_request.jsonrpc,
-            'result': self.apply(),
+            'id': rpc_request.id,
+            'jsonrpc': rpc_request.jsonrpc,
+            'result': self.process(rpc_request),
         }
-
-
