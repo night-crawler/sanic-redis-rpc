@@ -1,4 +1,3 @@
-import typing as t
 import asyncio
 
 from sanic.request import Request

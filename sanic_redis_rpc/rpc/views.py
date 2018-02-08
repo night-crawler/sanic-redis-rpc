@@ -1,4 +1,3 @@
-import aioredis
 from sanic import Blueprint
 from sanic import Sanic
 from sanic.request import Request

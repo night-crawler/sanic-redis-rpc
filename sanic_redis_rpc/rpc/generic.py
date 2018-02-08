@@ -6,7 +6,7 @@ from sanic_redis_rpc.rpc.utils import JSON_RPC_VERSION
 
 
 class RpcRequest:
-    def __init__(self, data: t.Dict[str, t.Any], silent: bool=False):
+    def __init__(self, data: t.Dict[str, t.Any], silent: bool = False):
         self._data: t.Dict[str, t.Any] = data
         self.silent = silent
         self._error = None

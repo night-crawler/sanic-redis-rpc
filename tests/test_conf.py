@@ -1,5 +1,6 @@
 import pytest
 from sanic import Sanic
+
 from sanic_redis_rpc.conf import ENV_REDIS_PREFIX, read_redis_config_from_env, configure
 
 pytestmark = pytest.mark.conf
