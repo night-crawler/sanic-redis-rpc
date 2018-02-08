@@ -7,8 +7,10 @@ class RpcError(SanicException):
     MESSAGE = ''
     ERROR_CODE = -32000
 
-    def __init__(self, id=None, data=None, message=None):
+    def __init__(self, id=None, data=None, message=None, error_code=ERROR_CODE):
         super(RpcError, self).__init__(message or self.MESSAGE, status_code=200)
+        self.message = message or self.MESSAGE
+        self.error_code = error_code
         self.data = data
         self.id = id
 
@@ -16,7 +18,7 @@ class RpcError(SanicException):
         return self.MESSAGE
 
     def as_dict(self):
-        error = {'message': self.MESSAGE, 'code': self.ERROR_CODE}
+        error = {'message': self.message, 'code': self.error_code}
         if self.data:
             error['data'] = self.data
 

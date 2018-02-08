@@ -18,6 +18,20 @@ class RpcRequest:
         if self._error and not silent:
             raise self._error
 
+    def __repr__(self):
+        failed = bool(self._error)
+        try:
+            method = self.method
+        except:
+            method = 'Unparsable'
+
+        try:
+            id = self.id
+        except:
+            id = 'Unparsable'
+
+        return f'{self.__class__.__name__}(id={id} method="{method}" failed={failed})'
+
     def _validate(self):
         if not isinstance(self._data, dict):
             raise exceptions.RpcInvalidRequestError(id=None, message='Single RPC call should be a mapping')
@@ -56,7 +70,7 @@ class RpcRequest:
 
     @property
     def method(self) -> str:
-        return self._data.get('method')
+        return str(self._data.get('method', ''))
 
     @property
     def method_path(self) -> t.List[str]:
