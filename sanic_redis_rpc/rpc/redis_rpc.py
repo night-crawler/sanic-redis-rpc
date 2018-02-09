@@ -35,6 +35,9 @@ class RedisRpcRequestProcessor(RpcRequestProcessor):
         if asyncio.iscoroutine(result):
             result = await result
 
+        if isinstance(result, bytes):
+            result = base64.encodebytes(result).decode()
+
         return {
             'id': rpc_request.id,
             'jsonrpc': rpc_request.jsonrpc,
