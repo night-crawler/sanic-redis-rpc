@@ -2,7 +2,7 @@ import base64
 import typing as t
 import asyncio
 from collections import OrderedDict
-
+from itertools import chain
 from sanic.request import Request
 
 from sanic_redis_rpc.rpc import exceptions
@@ -91,7 +91,13 @@ class RedisRpcBatchProcessor:
         if declined:
             return declined
 
-        redis = await self._pools_wrapper.get_redis(pool_name)
+        try:
+            redis = await self._pools_wrapper.get_redis(pool_name)
+        except KeyError:
+            return self._decline_requests(
+                rpc_requests, exceptions.RpcMethodNotFoundError,
+                message=f'Pool with name `{pool_name}` does not exist'
+            )
 
         if rpc_requests[0].method_name == 'multi_exec':
             instance = redis.multi_exec()
@@ -134,12 +140,11 @@ class RedisRpcBatchProcessor:
 
     async def process(self, rpc_batch_request: RpcBatchRequest):
         reordered = self._reorder_requests_by_pool_name(rpc_batch_request)
-        tasks = []
-        for pool_name, rpc_requests in reordered.items():
-            tasks.append(self.process_pool_tasks(pool_name, rpc_requests))
-
-        results = await asyncio.gather(*tasks)
-        print(results)
+        tasks = [
+            self.process_pool_tasks(pool_name, rpc_requests)
+            for pool_name, rpc_requests in reordered.items()
+        ]
+        return list(chain.from_iterable(await asyncio.gather(*tasks)))
 
 
 class RedisRpc:
@@ -152,7 +157,7 @@ class RedisRpc:
         try:
             redis = await self._pools_wrapper.get_redis(rpc_request.pool_name)
         except KeyError:
-            raise exceptions.RpcInvalidParamsError(
+            raise exceptions.RpcMethodNotFoundError(
                 id=rpc_request.id, data=rpc_request.params,
                 message=f'Pool with name `{rpc_request.pool_name}` does not exist'
             )
@@ -162,7 +167,7 @@ class RedisRpc:
     async def handle_batch(self, request_data: t.List[t.Dict[str, t.Any]]):
         batch_rpc_request = RpcBatchRequest(request_data, request_cls=RedisRpcRequest)
         processor = RedisRpcBatchProcessor(self._pools_wrapper)
-        res = await processor.process(batch_rpc_request)
+        return await processor.process(batch_rpc_request)
 
     async def handle(self, request: Request):
         data = load_json(request.body)

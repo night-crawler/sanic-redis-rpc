@@ -32,13 +32,12 @@ class RedisRpcTest:
             mk_rpc_bundle('redis_0.set', {'key': 'qwe2', 'value': 2})
         ]
         res = await rpc.handle_batch(rpc_batch_request_bundle)
-        print(res)
+        assert len(res) == 2
 
 
 # noinspection PyMethodMayBeStatic
 class RedisRpcBatchProcessorTest:
-    def test__reorder_requests_by_pool_name(self, app: Sanic):
-        processor = RedisRpcBatchProcessor(app._pools_wrapper)
+    def test__reorder_requests_by_pool_name(self):
         br = RpcBatchRequest([
             mk_rpc_bundle('redis_0.set', {'key': 'qwe1', 'value': 1}),
             mk_rpc_bundle('redis_1.set', {'key': 'qwe1', 'value': 100}),
@@ -49,8 +48,6 @@ class RedisRpcBatchProcessorTest:
         mapping = RedisRpcBatchProcessor._reorder_requests_by_pool_name(br)
         assert len(mapping['redis_0']) == 2
         assert len(mapping['redis_1']) == 2
-
-        # processor.process(br)
 
     def test__validate_pool_tasks(self):
         br = RpcBatchRequest([
@@ -123,4 +120,5 @@ class RedisRpcBatchProcessorTest:
         ], request_cls=RedisRpcRequest)
 
         res = await processor.process(br)
+        assert len(res) == len(br.requests) - 1
 
