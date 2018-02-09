@@ -4,7 +4,7 @@ from sanic.request import Request
 from sanic.response import json
 
 from sanic_redis_rpc.rpc import exceptions
-from sanic_redis_rpc.rpc.redis_rpc import RedisRpc
+from sanic_redis_rpc.redis_rpc import RedisRpc
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 
 sanic_redis_rpc_bp = bp = Blueprint('sanic-redis-rpc')

@@ -2,9 +2,9 @@ import pytest
 from sanic import Sanic
 
 from sanic_redis_rpc.rpc import exceptions
-from sanic_redis_rpc.rpc import redis_rpc
+from sanic_redis_rpc import redis_rpc
 from sanic_redis_rpc.rpc.generic import RpcBatchRequest
-from sanic_redis_rpc.rpc.redis_rpc import RedisRpcBatchProcessor, RedisRpcRequest
+from sanic_redis_rpc.redis_rpc import RedisRpcBatchProcessor, RedisRpcRequest
 from tests.utils import mk_rpc_bundle, AttrObject
 
 
