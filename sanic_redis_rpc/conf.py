@@ -9,7 +9,7 @@ from natsort import natsorted
 from sanic import Sanic
 from sanic.config import Config
 
-from sanic_redis_rpc.utils import parse_redis_connection_string
+from sanic_redis_rpc.utils import parse_redis_dsn
 
 DEFAULT_REDIS_CONNECTION_STRING = 'redis://localhost:6379'
 ENV_REDIS_PREFIX = 'REDIS_'
@@ -21,7 +21,7 @@ def read_redis_config_from_env(env: t.Dict[str, str]) -> t.Dict[str, t.Dict[str,
     _sorted_iter = enumerate(natsorted(redis_env_vars_mapping.items(), key=itemgetter(0)))
 
     for i, (rkey, conn_str) in _sorted_iter:
-        parsed = parse_redis_connection_string(conn_str)
+        parsed = parse_redis_dsn(conn_str)
         parsed['id'] = i
         parsed['env_variable'] = rkey
         if not parsed['name']:

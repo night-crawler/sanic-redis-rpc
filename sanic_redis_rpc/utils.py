@@ -45,7 +45,7 @@ def coerce_str_to_bool(val: t.Union[str, int, bool, None], strict: bool = False)
     return bool(val)
 
 
-def parse_redis_connection_string(raw_str: str = 'redis://localhost:6379') -> t.Dict[str, t.Any]:
+def parse_redis_dsn(raw_str: str = 'redis://localhost:6379') -> t.Dict[str, t.Any]:
     _, opts = parse_url(raw_str)
     opts.setdefault('db', 0)
     parsed = furl(raw_str)
