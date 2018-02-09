@@ -58,7 +58,7 @@ class RedisPoolsShareWrapper:
         return self.pool_map[name]
 
     async def get_redis(self, pool_name: str) -> aioredis.Redis:
-        redis = self.redis_map.get(pool_name, None)
+        redis: aioredis.Redis = self.redis_map.get(pool_name, None)
         if redis is not None:
             return redis
         pool = await self.get_pool(pool_name)

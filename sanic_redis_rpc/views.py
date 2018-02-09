@@ -15,6 +15,9 @@ async def process_rpc_exceptions(request: Request, exception: Exception):
     if isinstance(exception, exceptions.RpcError):
         return json(exception.as_dict())
 
+    import traceback
+    traceback.print_exc()
+
 
 @bp.listener('before_server_start')
 async def before_server_start(app: Sanic, loop):
@@ -36,4 +39,4 @@ async def status(request: Request):
 @bp.route('/', methods=['POST'])
 async def handle_rpc(request: Request):
     handler: RedisRpc = request.app._redis_rpc_handler
-    return json(handler.handle(request))
+    return json(await handler.handle(request))

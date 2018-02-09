@@ -32,10 +32,34 @@ def test_cli(loop, app, test_client):
 # noinspection PyShadowingNames
 @pytest.fixture
 def rpc(test_cli):
-    async def rpc_call(base_url, method: str, *args):
-        return await test_cli.post(
+    async def rpc_call(base_url, method: str, *args, **kwargs):
+        _args = args
+        if kwargs:
+            _args = kwargs
+
+        response = await test_cli.post(
             base_url,
-            json=mk_rpc_bundle(method, args),
+            json=mk_rpc_bundle(method, _args),
         )
+        return await response.json()
 
     return rpc_call
+
+
+# noinspection PyShadowingNames
+@pytest.fixture
+def batch_rpc(test_cli):
+    async def rpc_batch_call(base_url, *bundles):
+        calls = []
+        for bundle in bundles:
+            calls.append(mk_rpc_bundle(
+                bundle[0], bundle[1]
+            ))
+
+        response = await test_cli.post(
+            base_url,
+            json=calls,
+        )
+        return await response.json()
+
+    return rpc_batch_call

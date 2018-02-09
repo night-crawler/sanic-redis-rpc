@@ -32,11 +32,11 @@ class RedisRpcRequestProcessor(RpcRequestProcessor):
 
     async def process(self, rpc_request: RpcRequest):
         result = self.apply(rpc_request)
-        if asyncio.iscoroutine(result):
+        if asyncio.iscoroutine(result) or asyncio.isfuture(result):
             result = await result
 
         if isinstance(result, bytes):
-            result = base64.encodebytes(result).decode()
+            result = base64.standard_b64encode(result).decode()
 
         return {
             'id': rpc_request.id,
@@ -132,7 +132,7 @@ class RedisRpcBatchProcessor:
                 continue
 
             if isinstance(response, bytes):
-                response = base64.encodebytes(response).decode()
+                response = base64.standard_b64encode(response).decode()
 
             results.append({
                 'id': request.id,
