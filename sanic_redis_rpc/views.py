@@ -22,7 +22,7 @@ async def process_rpc_exceptions(request: Request, exception: Exception):
 @bp.listener('before_server_start')
 async def before_server_start(app: Sanic, loop):
     app._pools_wrapper = RedisPoolsShareWrapper(app.config.redis_connections_options, loop)
-    await app._pools_wrapper.initialize_pools()
+    await app._pools_wrapper._initialize_pools()
     app._redis_rpc_handler = RedisRpc(app._pools_wrapper)
 
 
