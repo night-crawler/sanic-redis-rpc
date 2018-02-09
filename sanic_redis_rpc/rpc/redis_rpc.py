@@ -1,8 +1,9 @@
+import asyncio
 import base64
 import typing as t
-import asyncio
 from collections import OrderedDict
 from itertools import chain
+
 from sanic.request import Request
 
 from sanic_redis_rpc.rpc import exceptions

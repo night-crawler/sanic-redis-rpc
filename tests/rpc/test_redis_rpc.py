@@ -1,5 +1,3 @@
-from pprint import pprint
-
 import pytest
 from sanic import Sanic
 
@@ -121,4 +119,3 @@ class RedisRpcBatchProcessorTest:
 
         res = await processor.process(br)
         assert len(res) == len(br.requests) - 1
-
