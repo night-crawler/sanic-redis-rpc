@@ -4,7 +4,7 @@ from sanic.websocket import WebSocketProtocol
 
 from sanic_redis_rpc.conf import configure
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
-from sanic_redis_rpc.rpc.views import sanic_redis_rpc_bp
+from sanic_redis_rpc.views import sanic_redis_rpc_bp
 from tests.utils import mk_rpc_bundle
 
 

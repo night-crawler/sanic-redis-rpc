@@ -20,6 +20,7 @@ async def process_rpc_exceptions(request: Request, exception: Exception):
 async def before_server_start(app: Sanic, loop):
     app._pools_wrapper = RedisPoolsShareWrapper(app.config.redis_connections_options, loop)
     await app._pools_wrapper.initialize_pools()
+    app._redis_rpc_handler = RedisRpc(app._pools_wrapper)
 
 
 @bp.listener('after_server_stop')
@@ -27,19 +28,12 @@ async def after_server_stop(app: Sanic, loop):
     await app._pools_wrapper.close()
 
 
-@bp.route('/status', methods=['POST', 'GET'])
+@bp.route('/status', methods=['GET'])
 async def status(request: Request):
     return json(await request.app._pools_wrapper.get_status())
 
 
-@bp.route('/spec', methods=['POST', 'GET'])
-async def spec(request: Request):
-    # print(request.json)
-    print(dir(request))
-    return json({'my': 'blueprint1'})
-
-
-@bp.route('/', methods=['POST', 'GET'])
+@bp.route('/', methods=['POST'])
 async def handle_rpc(request: Request):
-    handler = RedisRpc(request)
-    return json({'my': 'blueprint'})
+    handler: RedisRpc = request.app._redis_rpc_handler
+    return json(handler.handle(request))

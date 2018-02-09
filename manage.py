@@ -13,7 +13,7 @@ def cli():
 @click.option('--debug', is_flag=True, help='Set debug')
 @click.option('--workers', default=1, help='Workers count')
 def runserver(host, port, workers, debug):
-    from sanic_redis_rpc.server import app
+    from server import app
     app.run(host=host, port=port, debug=debug, workers=workers)
 
 
