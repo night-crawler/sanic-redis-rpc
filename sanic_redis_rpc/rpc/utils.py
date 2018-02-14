@@ -29,7 +29,7 @@ class RedisPoolsShareWrapper:
         'minsize', 'maxsize', 'ssl', 'parser', 'create_connection_timeout', 'db', 'password'
     ]
 
-    SAFE_STATUS_KEYS = ['id', 'db', 'env_variable', 'name', 'poolsize']
+    SAFE_STATUS_KEYS = ['id', 'db', 'env_variable', 'name', 'display_name', 'poolsize', 'address']
 
     def __init__(self, redis_connections_options: t.Dict[str, t.Dict[str, t.Any]], loop=None):
         self._redis_connections_options = redis_connections_options

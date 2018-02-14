@@ -60,7 +60,7 @@ def parse_redis_dsn(raw_str: str = 'redis://localhost:6379') -> t.Dict[str, t.An
         'minsize': int(parsed.args.get('minsize', 1)),
         'maxsize': int(parsed.args.get('maxsize', 10)),
         'name': parsed.args.get('name', ''),
-        'display_name': parsed.args.get('display_name', 'Redis root_instance'),
+        'display_name': parsed.args.get('display_name', ''),
     })
 
     return opts

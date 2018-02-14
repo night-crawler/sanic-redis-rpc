@@ -7,7 +7,7 @@ pytestmark = pytest.mark.utils
 
 # noinspection PyMethodMayBeStatic
 class UtilsTest:
-    def test__parse_redis_connection_string(self):
+    def test__parse_redis_dsn(self):
         assert utils.parse_redis_dsn()
         assert utils.parse_redis_dsn(
             'redis://clientid:password@127.0.0.1:6380?db=66&poolsize=12&auto_reconnect=off&name=vasya'
@@ -19,5 +19,5 @@ class UtilsTest:
                    'minsize': 1,
                    'maxsize': 10,
                    'name': 'vasya',
-                   'display_name': 'Redis root_instance'
+                   'display_name': ''
                }

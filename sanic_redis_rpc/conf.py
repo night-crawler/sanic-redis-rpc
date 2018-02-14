@@ -27,6 +27,9 @@ def read_redis_config_from_env(env: t.Dict[str, str]) -> t.Dict[str, t.Dict[str,
         if not parsed['name']:
             parsed['name'] = 'redis_%s' % i
 
+        if not parsed['display_name']:
+            parsed['display_name'] = 'Redis instance %s' % i
+
         if parsed['name'] in res:
             raise ValueError(f'Duplicate name `{parsed["name"]}` in `{redis_env_vars_mapping}`')
 
