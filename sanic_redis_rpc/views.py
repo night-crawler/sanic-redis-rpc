@@ -1,3 +1,4 @@
+import aioredis
 from sanic import Blueprint
 from sanic import Sanic
 from sanic.request import Request
@@ -6,6 +7,7 @@ from sanic.response import json
 from sanic_redis_rpc.rpc import exceptions
 from sanic_redis_rpc.redis_rpc import RedisRpc
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
+from sanic_redis_rpc.signature_serializer import SignatureSerializer
 
 sanic_redis_rpc_bp = bp = Blueprint('sanic-redis-rpc')
 
@@ -36,6 +38,13 @@ async def status(request: Request):
     if request.method == 'OPTIONS':
         return json({})
     return json(await request.app._pools_wrapper.get_status())
+
+
+@bp.route('/inspect', methods=['GET'])
+async def status(request: Request):
+    return json(
+        SignatureSerializer(aioredis.Redis('fake')).to_dict()
+    )
 
 
 @bp.route('/', methods=['POST', 'OPTIONS'])
