@@ -33,10 +33,14 @@ async def after_server_stop(app: Sanic, loop):
 
 @bp.route('/status', methods=['GET'])
 async def status(request: Request):
+    if request.method == 'OPTIONS':
+        return json({})
     return json(await request.app._pools_wrapper.get_status())
 
 
-@bp.route('/', methods=['POST'])
+@bp.route('/', methods=['POST', 'OPTIONS'])
 async def handle_rpc(request: Request):
+    if request.method == 'OPTIONS':
+        return json({})
     handler: RedisRpc = request.app._redis_rpc_handler
     return json(await handler.handle(request))
