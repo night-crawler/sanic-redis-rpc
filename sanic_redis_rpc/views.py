@@ -41,7 +41,7 @@ async def status(request: Request):
 
 
 @bp.route('/inspect', methods=['GET'])
-async def status(request: Request):
+async def inspect(request: Request):
     return json(
         SignatureSerializer(aioredis.Redis('fake')).to_dict()
     )
