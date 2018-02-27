@@ -38,5 +38,5 @@ class RedisPoolsShareWrapperTest:
         wrapper = RedisPoolsShareWrapper(app.config.redis_connections_options)
         await wrapper._initialize_pools()
         res = await wrapper.get_status()
-        assert 'redis_0' in res
-        assert 'redis_1' in res
+        assert res[0]['name'] == 'redis_0'
+        assert res[1]['name'] == 'redis_1'

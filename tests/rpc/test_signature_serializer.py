@@ -29,7 +29,7 @@ class SignatureSerializerTest:
         ser = SignatureSerializer(Sample())
         inspected = ser.inspect_entity('sample1')
         assert inspected
-        assert inspected['return'] == 'int'
+        assert inspected['return_type'] == 'int'
         assert inspected['doc']
 
         inspected = ser.inspect_entity('sample2')

@@ -65,8 +65,8 @@ class RedisPoolsShareWrapper:
         self._redis_map[pool_name] = aioredis.Redis(pool)
         return self._redis_map[pool_name]
 
-    async def get_status(self) -> t.Dict[str, t.Dict[str, t.Any]]:
-        res = OrderedDict()
+    async def get_status(self) -> t.List[t.Dict[str, t.Any]]:
+        res = []
         for pool_name, opts in self._redis_connections_options.items():
             pool = await self._get_pool(pool_name)
             bundle = {k: v for k, v in opts.items() if k in self.SAFE_STATUS_KEYS}
@@ -74,7 +74,7 @@ class RedisPoolsShareWrapper:
                 attr: getattr(pool, attr)
                 for attr in ['encoding', 'freesize', 'maxsize', 'minsize', 'closed', 'size']
             })
-            res[pool_name] = bundle
+            res.append(bundle)
         return res
 
     async def close(self):

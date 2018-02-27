@@ -53,18 +53,19 @@ class SignatureSerializer:
         sig = Signature.from_callable(entity)
 
         inspected = {
-            'return': self._serialize_annotation(sig.return_annotation),
+            'return_type': self._serialize_annotation(sig.return_annotation),
             'doc': entity.__doc__,
         }
 
-        _parameters = OrderedDict()
+        _parameters = []
         for name, parameter in sig.parameters.items():
             parameter: Parameter = parameter
-            _parameters[name] = {
+            _parameters.append({
+                'name': name,
                 'kind': parameter.kind.name,
                 'default': self._serialize_parameter_default(parameter.default),
                 'type': self._serialize_annotation(parameter.annotation),
-            }
+            })
 
         inspected['parameters'] = _parameters
 

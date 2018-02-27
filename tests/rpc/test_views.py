@@ -11,8 +11,8 @@ class BlueprintTest:
         resp = await test_cli.get('/status')
         assert resp.status == 200
         resp_json = await resp.json()
-        assert 'redis_0' in resp_json
-        assert 'redis_1' in resp_json
+        assert resp_json[0]['name'] == 'redis_0'
+        assert resp_json[1]['name'] == 'redis_1'
 
     async def test_redis_rpc_single(self, rpc):
         res = await rpc('/', 'redis_0.set', 'qwe', 1)
