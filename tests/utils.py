@@ -52,3 +52,6 @@ class SampleRpcObject:
 
     def kwonly(self, a, b, *, trash: bool = True):
         pass
+
+    def pos_or_kw__var_pos__kw_only__kwargs(self, key, *get_patterns, by=None, **kwargs):
+        return [key, get_patterns, by, kwargs]

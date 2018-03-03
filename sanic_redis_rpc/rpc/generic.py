@@ -1,5 +1,6 @@
 import typing as t
-from inspect import Signature, BoundArguments
+from copy import deepcopy
+from inspect import Signature, BoundArguments, Parameter
 
 from sanic_redis_rpc.rpc import exceptions
 from sanic_redis_rpc.rpc.utils import JSON_RPC_VERSION
@@ -117,14 +118,80 @@ class RpcRequestProcessor:
         return Signature.from_callable(method)
 
     @staticmethod
-    def _prepare_call_args(signature: Signature, params):
-        args, kwargs = [], {}
+    def _prepare_call_args(signature: Signature, params: t.Union[list, t.Dict[str, t.Any]]):
         if isinstance(params, list):
-            args = params
-        else:
-            kwargs = params
+            return RpcRequestProcessor._prepare_call_args_from_list(signature, params)
+        return RpcRequestProcessor._prepare_call_args_from_dict(signature, params)
 
-        ba: BoundArguments = signature.bind(*args, **kwargs)
+    @staticmethod
+    def _prepare_call_args_from_list(signature: Signature, params: list) -> t.Tuple[list, t.Dict[str, t.Any]]:
+        ba: BoundArguments = signature.bind(*params)
+        ba.apply_defaults()
+        return ba.args, ba.kwargs
+
+    @staticmethod
+    def _prepare_call_args_from_dict(
+            signature: Signature, params: t.Dict[str, t.Any]
+    ) -> t.Tuple[list, t.Dict[str, t.Any]]:
+        """
+        Creates populated ``args`` and ``kwargs`` from params bound to signature.
+        Processes every parameter in ``Signature.parameters`` and takes corresponding values from ``params``.
+
+        NOTE: Just cannot simply call ``signature.bind(**params)`` because it cannot take VAR_POSITIONAL from dict by
+        a key name. But we need this features since there's no way to pass ``*args`` to rpc call with dict params.
+        Also it cannot do the same unpack thing with VAR_KEYWORD passed as a key in ``params``.
+
+        Links:
+            - https://www.python.org/dev/peps/pep-0457/#id14
+
+        :param signature: a signature of a callable
+        :param params: a dict with callable arguments
+        :return: a tuple with args and kwargs
+        """
+        sentinel = object()
+        params, args, kwargs = deepcopy(params), [], {}
+
+        for name, parameter in signature.parameters.items():
+            parameter: Parameter = parameter
+            value = params.pop(name, sentinel)
+            if value is sentinel:
+                value = parameter.default
+
+            # Positional-only parameters don't accept default values according to PEP
+            if parameter.kind is Parameter.POSITIONAL_ONLY:
+                if value is Parameter.empty:
+                    raise TypeError(f'You must specify `{name}` argument')
+                args.append(value)
+
+            elif parameter.kind is Parameter.POSITIONAL_OR_KEYWORD:
+                if value is Parameter.empty:
+                    raise TypeError(f'You must specify `{name}` argument')
+                args.append(value)
+
+            elif parameter.kind is Parameter.VAR_POSITIONAL:
+                if value is Parameter.empty:  # user may not pass *args
+                    continue
+                if not isinstance(value, list):
+                    raise TypeError(f'`{name}` must be a list')
+                args += value
+
+            elif parameter.kind is Parameter.KEYWORD_ONLY:
+                if value is Parameter.empty:
+                    continue
+                kwargs[name] = value
+
+            elif parameter.kind is Parameter.VAR_KEYWORD:
+                if value is Parameter.empty:
+                    continue
+                if not isinstance(value, dict):
+                    raise TypeError(f'Keyword arguments passed in the variable `{name}` must be a dict')
+                kwargs.update(value)
+
+            else:
+                raise TypeError(f'Unknown type `{parameter.kind.name}` for parameter {name}')
+
+        # let Signature.bind do the rest
+        ba: BoundArguments = signature.bind(*args, **kwargs, **params)
         ba.apply_defaults()
         return ba.args, ba.kwargs
 

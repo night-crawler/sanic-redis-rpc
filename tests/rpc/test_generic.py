@@ -94,6 +94,50 @@ class RpcRequestProcessorTest:
         rpc_request = RpcRequest(mk_rpc_bundle('add', {'a': 1, 'b': 1.1, 'make_negative': True}))
         assert processor.process(rpc_request)['id'] == rpc_request.id
 
+    def test___prepare_call_args_from_dict(self):
+        sample = SampleRpcObject(10)
+        signature = Signature.from_callable(sample.pos_or_kw__var_pos__kw_only__kwargs)
+        processor = RpcRequestProcessor(sample)
+        params = {
+            'key': 'lol',
+            'get_patterns': [1, 2, 3],
+            'additional_kw': 2,
+            'by': 'qwe',  # positional only
+            'kwargs': {'trash': 1}
+        }
+        res = processor._prepare_call_args_from_dict(signature, params)
+        assert res == (
+            ('lol', 1, 2, 3),
+            {'by': 'qwe', 'trash': 1, 'additional_kw': 2}
+        )
+
+        # can deal with empty *get_patterns
+        params = {'key': 'lol'}
+        res = processor._prepare_call_args_from_dict(signature, params)
+        assert res == (
+            ('lol',),
+            {'by': None}
+        )
+
+    def test___prepare_call_args_from_dict__exceptions(self):
+        sample = SampleRpcObject(10)
+        signature = Signature.from_callable(sample.pos_or_kw__var_pos__kw_only__kwargs)
+        processor = RpcRequestProcessor(sample)
+
+        with pytest.raises(TypeError, message='`get_patterns` must be a list'):
+            processor._prepare_call_args_from_dict(
+                signature,
+                {'key': 'lol', 'get_patterns': 1}
+            )
+
+        with pytest.raises(TypeError, message='You must specify `key` argument'):
+            processor._prepare_call_args_from_dict(signature, {})
+
+        with pytest.raises(TypeError, message='Keyword arguments passed in the variable `kwargs` must be a dict'):
+            processor._prepare_call_args_from_dict(
+                signature, {'key': 1, 'kwargs': 'qwe'}
+            )
+
 
 class RpcBatchRequestProcessorTest:
     pytestmark = [pytest.mark.rpc, pytest.mark.batch, pytest.mark.request, pytest.mark.processor]
