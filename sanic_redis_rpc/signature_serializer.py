@@ -1,6 +1,7 @@
 import typing as t
 from collections import OrderedDict
 from inspect import Signature, _empty, Parameter
+from aioredis.util import _NOTSET
 
 
 class SignatureSerializer:
@@ -35,6 +36,8 @@ class SignatureSerializer:
             yield name, entity
 
     def _serialize_parameter_default(self, default):
+        if default is _NOTSET:
+            default = None
         if default is _empty:
             default = None
         if type(default) not in [int, str, bool, list, dict, set, type(None), None]:

@@ -1,6 +1,6 @@
 import aioredis
 import pytest
-
+from aioredis.util import _NOTSET
 from sanic_redis_rpc.signature_serializer import SignatureSerializer
 
 
@@ -39,3 +39,9 @@ class SignatureSerializerTest:
     async def test__to_dict(self):
         ser = SignatureSerializer(aioredis.Redis('fake'))
         assert ser.to_dict()
+
+    async def test__redis_default_parameter_NOTSET_casted_to_None(self):
+        ser = SignatureSerializer(aioredis.Redis('fake'))
+        spec = ser.inspect_entity('echo')
+        # encoding=_NOTSET is a last parameter
+        assert spec['parameters'][-1]['default'] is None
