@@ -45,3 +45,10 @@ class SignatureSerializerTest:
         spec = ser.inspect_entity('echo')
         # encoding=_NOTSET is a last parameter
         assert spec['parameters'][-1]['default'] is None
+
+    async def test__defaults_with_byte_types_are_decoded(self):
+        ser = SignatureSerializer(aioredis.Redis('fake'))
+        spec = ser.inspect_entity('zrangebylex')
+        # {'name': 'min', 'kind': 'POSITIONAL_OR_KEYWORD', 'default': '-', 'type': None}
+        assert type(spec['parameters'][1]['default']) == str
+        assert spec['parameters'][1]['default'] == '-'

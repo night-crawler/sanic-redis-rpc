@@ -40,6 +40,8 @@ class SignatureSerializer:
             default = None
         if default is _empty:
             default = None
+        if isinstance(default, bytes):
+            default = default.decode()
         if type(default) not in [int, str, bool, list, dict, set, type(None), None]:
             default = str(default)
         return default
