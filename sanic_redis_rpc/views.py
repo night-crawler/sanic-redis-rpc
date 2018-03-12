@@ -12,13 +12,13 @@ from sanic_redis_rpc.signature_serializer import SignatureSerializer
 sanic_redis_rpc_bp = bp = Blueprint('sanic-redis-rpc')
 
 
-@bp.exception(Exception)
-async def process_rpc_exceptions(request: Request, exception: Exception):
-    if isinstance(exception, exceptions.RpcError):
-        return json(exception.as_dict())
-
-    import traceback
-    traceback.print_exc()
+# @bp.exception(Exception)
+# async def process_rpc_exceptions(request: Request, exception: Exception):
+#     if isinstance(exception, exceptions.RpcError):
+#         return json(exception.as_dict())
+#
+#     import traceback
+#     traceback.print_exc()
 
 
 @bp.listener('before_server_start')
@@ -52,4 +52,12 @@ async def handle_rpc(request: Request):
     if request.method == 'OPTIONS':
         return json({})
     handler: RedisRpc = request.app._redis_rpc_handler
-    return json(await handler.handle(request))
+
+    # handle exceptions manually since sanic-cors does not apply cors headers to responses
+    # handled with @bp.exception(Exception)
+    try:
+        return json(await handler.handle(request))
+    except exceptions.RpcError as e:
+        return json(e.as_dict())
+    except Exception as e:
+        return json(exceptions.RpcError(message=str(e)).as_dict())
