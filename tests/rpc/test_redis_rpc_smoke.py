@@ -1,3 +1,5 @@
+from base64 import standard_b64encode
+
 import aioredis
 import pytest
 from sanic import Sanic
@@ -32,3 +34,28 @@ class RedisSmokeTest:
             ['redis_0.execute', {'command': 'get', 'args': ['qwe']}]
         )
         assert 'error' in res
+
+    async def test_set_test_values(self, app: Sanic):
+        redis: aioredis.Redis = await app._pools_wrapper.get_redis('redis_0')
+        assert (await redis.set('test::blob:ascii:string', b'I AM THE BLOB!11'))
+
+        assert (await redis.set('test::string:utf8:ascii', 'I AM THE BLOB!11'))
+        assert (await redis.set('test::string:utf8:cyr', 'Я БЛОБ'))
+
+        b_jpg = open('./tests/data/sample.jpg', 'rb').read()
+        b64_jpg = standard_b64encode(b_jpg)
+
+        b_png = open('./tests/data/sample.png', 'rb').read()
+        b64_png = standard_b64encode(b_png)
+
+        b_gif = open('./tests/data/sample.gif', 'rb').read()
+        b64_gif = standard_b64encode(b_gif)
+
+        assert (await redis.set('test::blob:bytes:jpg', b_jpg))
+        assert (await redis.set('test::blob:b64:jpg', b64_jpg))
+
+        assert (await redis.set('test::blob:bytes:png', b_png))
+        assert (await redis.set('test::blob:b64:png', b64_png))
+
+        assert (await redis.set('test::blob:bytes:gif', b_gif))
+        assert (await redis.set('test::blob:b64:gif', b64_gif))
