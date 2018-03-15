@@ -59,3 +59,19 @@ class RedisSmokeTest:
 
         assert (await redis.set('test::blob:bytes:gif', b_gif))
         assert (await redis.set('test::blob:b64:gif', b64_gif))
+
+        b_json = open('./tests/data/sample.json', 'rb').read()
+        b64_json = standard_b64encode(b_json)
+        p_json = open('./tests/data/sample.json').read()
+
+        assert (await redis.set('test::json:bytes', b_json))
+        assert (await redis.set('test::json:b64', b64_json))
+        assert (await redis.set('test::json:plain', p_json))
+
+        b_yaml = open('./tests/data/sample.yaml', 'rb').read()
+        b64_yaml = standard_b64encode(b_yaml)
+        p_yaml = open('./tests/data/sample.yaml').read()
+
+        assert (await redis.set('test::yaml:bytes', b_yaml))
+        assert (await redis.set('test::yaml:b64', b64_yaml))
+        assert (await redis.set('test::yaml:plain', p_yaml))
