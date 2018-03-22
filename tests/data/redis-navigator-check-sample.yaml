@@ -1,0 +1,72 @@
+# generic
+- methodName: get
+  methodParams:
+    key: test::blob:ascii:string
+
+- methodName: get
+  methodParams:
+    key: test::string:utf8:ascii
+    encoding: utf8
+
+- methodName: get
+  methodParams:
+    key: test::string:utf8:cyr
+    encoding: utf8
+
+
+# BLOB: jpeg
+- methodName: get
+  methodParams:
+    key: test::blob:bytes:jpg
+
+- methodName: get
+  methodParams:
+    key: test::blob:b64:jpg
+
+
+# BLOB: png
+- methodName: get
+  methodParams:
+    key: test::blob:bytes:png
+
+- methodName: get
+  methodParams:
+    key: test::blob:b64:png
+
+
+# BLOB: gif
+- methodName: get
+  methodParams:
+    key: test::blob:bytes:gif
+
+- methodName: get
+  methodParams:
+    key: test::blob:b64:gif
+
+
+# JSON
+- methodName: get
+  methodParams:
+    key: test::json:bytes
+
+- methodName: get
+  methodParams:
+    key: test::json:b64
+
+- methodName: get
+  methodParams:
+    key: test::json:plain
+
+
+# YAML
+- methodName: get
+  methodParams:
+    key: test::yaml:bytes
+
+- methodName: get
+  methodParams:
+    key: test::yaml:b64
+
+- methodName: get
+  methodParams:
+    key: test::yaml:plain
