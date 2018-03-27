@@ -13,7 +13,7 @@ from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper, load_json
 
 class RedisRpcRequest(RpcRequest):
     def _validate(self):
-        super(RedisRpcRequest, self)._validate()
+        super()._validate()
         if len(self.method_path) < 2:
             raise exceptions.RpcInvalidParamsError(
                 id=self.id, data=self.params,
