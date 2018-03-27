@@ -4,10 +4,10 @@ from itertools import permutations, chain
 import aioredis
 import pytest
 
-from sanic_redis_rpc.exceptions import WrongNumberError, WrongPageSizeError, PageNotFoundError
+from sanic_redis_rpc.exceptions import WrongNumberError, WrongPageSizeError, PageNotFoundError, SearchIdNotFoundError
 from sanic_redis_rpc.key_manager import KeyManager
 
-comb_parts = sorted({
+COMB_PARTS = sorted({
     'anonymous',
     'bool',
     'bower',
@@ -16,14 +16,14 @@ comb_parts = sorted({
     'chicken'
 })
 
-keys_lookup_pattern = 'sanic-redis-rpc*'
+KEYS_LOOKUP_PATTERN = 'sanic-redis-rpc*'
 mk_key = lambda combination: 'sanic-redis-rpc-test:%s' % ':'.join(combination)
-all_combinations = list(permutations(comb_parts, 4))
-all_keys = sorted(mk_key(c) for c in all_combinations)
+ALL_COMBINATIONS = list(permutations(COMB_PARTS, 4))
+ALL_KEYS = sorted(mk_key(c) for c in ALL_COMBINATIONS)
 
 
 async def write_combinations(redis: aioredis.Redis):
-    keys = await redis.mget(*all_keys)
+    keys = await redis.mget(*ALL_KEYS)
 
     # do nothing, 60sec is enough to pass all tests
     if set(keys) != {None}:
@@ -31,21 +31,21 @@ async def write_combinations(redis: aioredis.Redis):
 
     pipe = redis.pipeline()
 
-    for i, comb in enumerate(all_combinations):
+    for i, comb in enumerate(ALL_COMBINATIONS):
         key_ = mk_key(comb)
 
         if i % 3 == 0:
-            bundle = {random.choice(comb_parts): random.choice(comb_parts) for k in range(len(comb_parts))}
+            bundle = {random.choice(COMB_PARTS): random.choice(COMB_PARTS) for k in range(len(COMB_PARTS))}
             pipe.hmset_dict(key_, **bundle)
         elif i % 5 == 0:
-            bundle = {random.choice(comb_parts): random.randint(1, 10) for k in range(len(comb_parts))}
+            bundle = {random.choice(COMB_PARTS): random.randint(1, 10) for k in range(len(COMB_PARTS))}
             pipe.zadd(key_, *chain(
                 *[reversed(pair) for pair in bundle.items()]
             ))
         elif i % 7 == 0:
-            pipe.sadd(key_, *comb_parts)
+            pipe.sadd(key_, *COMB_PARTS)
         elif i % 11 == 0:
-            pipe.lpush(key_, *comb_parts)
+            pipe.lpush(key_, *COMB_PARTS)
         else:
             pipe.set(key_, key_)
         pipe.expire(key_, 60)
@@ -68,81 +68,86 @@ class KeyManagerTest:
     async def test__init(self, key_manager):
         assert await key_manager
 
-    async def test__get_sorted_keys(self, key_manager):
+    async def test___get_sorted_keys(self, key_manager):
         km = await key_manager
-        sorted_keys = await km._get_sorted_keys(keys_lookup_pattern)
-        assert len(sorted_keys) >= len(all_combinations)
+        sorted_keys = await km._get_sorted_keys(KEYS_LOOKUP_PATTERN)
+        assert len(sorted_keys) >= len(ALL_COMBINATIONS), \
+            'Ensure count of keys retrieved from redis cannot be less than count of all combinations'
 
         for natively_sorted_item, sorted_set_item in zip(sorted(list(sorted_keys)), list(sorted_keys)):
-            assert natively_sorted_item == sorted_set_item
+            assert natively_sorted_item == sorted_set_item, \
+                'Each item from redis must be equal to the locally sorted one'
 
     async def test__get_page__sorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=10)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=10)
 
         page = await km.get_page(search_id, 1, 10)
-        assert len(page) == 10
-        assert page == all_keys[:10]
+        assert len(page) == 10, 'The count of retrieved items must match the request'
+        assert page == ALL_KEYS[:10], 'Remote redis slicing must be equal to the local'
 
         page = await km.get_page(search_id, 2, 10)
         assert len(page) == 10
-        assert page == all_keys[10:20]
+        assert page == ALL_KEYS[10:20]
 
-        page = await km.get_page(search_id, 1, len(all_keys) + 1000000)
-        assert len(page) == len(all_keys)
-        assert page == all_keys
+        page = await km.get_page(search_id, 1, len(ALL_KEYS) + 1000000)
+        assert len(page) == len(ALL_KEYS), 'Must load all keys since page size is bigger than total key count'
+        assert page == ALL_KEYS
 
     async def test__get_page__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=False, ttl_seconds=10)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
         page = await km.get_page(search_id, 1, 10)
         assert len(page) == 10
 
         page = await km.get_page(search_id, 2, 10)
         assert len(page) == 10
 
-        page = await km.get_page(search_id, 1, len(all_keys) + 1000000)
-        assert len(page) == len(all_keys)
+        page = await km.get_page(search_id, 1, len(ALL_KEYS) + 1000000)
+        assert len(page) == len(ALL_KEYS)
 
     async def test__get_page__exceptions(self, key_manager):
         km: KeyManager = await key_manager
-        with pytest.raises(WrongNumberError):
+
+        # must not be tolerant to pointless options
+        with pytest.raises(WrongNumberError, message='Must raise if page number below zero'):
             await km.get_page('qwe', 0, 100)
 
-        with pytest.raises(WrongPageSizeError):
+        with pytest.raises(WrongPageSizeError, message='Must raise if page size is not positive'):
             await km.get_page('qwe', 1, 0)
 
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=10)
-        with pytest.raises(PageNotFoundError):
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=10)
+        with pytest.raises(PageNotFoundError, message='Must raise if requested page is too far from reality'):
             await km.get_page(search_id, 1000000000, 10)
 
     async def test___load_more(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=False, ttl_seconds=10)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
 
-        await km._load_more(search_id, keys_lookup_pattern, 0, 10)
+        await km._load_more(search_id, KEYS_LOOKUP_PATTERN, 0, 10)
 
         results_key = km._mk_results_key(search_id)
         loaded_keys = await km.service_redis.lrange(results_key, 0, -1, encoding='utf8')
-        assert len(loaded_keys) >= 10
+        assert len(loaded_keys) >= 10, 'Loaded key count cannot be less than requested'
 
         # retrieve a new info object with new cursor
         info = await km.get_search_info(search_id)
-        await km._load_more(search_id, keys_lookup_pattern, info['cursor'], 25)
+        await km._load_more(search_id, KEYS_LOOKUP_PATTERN, info['cursor'], 25)
         loaded_keys = await km.service_redis.lrange(results_key, 0, -1, encoding='utf8')
-        assert len(loaded_keys) >= 25
+        assert len(loaded_keys) >= 25, 'Loaded key count cannot be less than requested'
 
     async def test___load_more__no_results(self, key_manager):
         search_pattern = 'kjh5kjlh34kl5h6klj34h5kl6jh3456*'
         km: KeyManager = await key_manager
         search_id = await km.paginate(search_pattern, sort_keys=False, ttl_seconds=10)
 
+        # just check if it doesn't hang or fail
         await km._load_more(search_id, search_pattern, 0, 10)
 
     async def test__paginate(self, key_manager):
         km: KeyManager = await key_manager
 
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=2)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=2)
         search_key = km._mk_search_key(search_id)
         assert search_id
         assert (await km.service_redis.ttl(search_key)) >= 1, \
@@ -154,7 +159,7 @@ class KeyManagerTest:
 
     async def test__paginate__sorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=2)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=2)
 
         info = await km.get_search_info(search_id)
         assert info['sorted'] == 1
@@ -166,7 +171,7 @@ class KeyManagerTest:
 
     async def test__paginate__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=False, ttl_seconds=2)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=2)
 
         info = await km.get_search_info(search_id)
         assert info['sorted'] == 0
@@ -176,24 +181,26 @@ class KeyManagerTest:
 
     async def test__get_search_info(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=1)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=1)
         info = await km.get_search_info(search_id)
+
+        # check type casting
         assert type(info['cursor']) == int
         assert type(info['sorted']) == int
         assert type(info['ttl_seconds']) == int
         assert type(info['count']) == int
 
-        with pytest.raises(Exception):
+        with pytest.raises(SearchIdNotFoundError):
             await km.get_search_info('does_not_exists')
 
     async def test__get_match_count(self, key_manager):
         km = await key_manager
-        assert await km._get_match_count(keys_lookup_pattern) >= len(all_combinations)
+        assert await km._get_match_count(KEYS_LOOKUP_PATTERN) >= len(ALL_COMBINATIONS)
 
     async def test__refresh_ttl(self, key_manager):
         km: KeyManager = await key_manager
 
-        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=1)
+        search_id = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=1)
         refresh_result = await km.refresh_ttl(search_id, 20)
         assert refresh_result == [True, True]
         assert await km.service_redis.ttl(km._mk_search_key(search_id)) >= 19, \
@@ -211,14 +218,14 @@ class KeyManagerTest:
     async def test__cleanup(self, get_redis):
         redis0: aioredis.Redis = await get_redis('redis_0')
         redis1: aioredis.Redis = await get_redis('redis_1')
-        async for k in redis0.iscan(match=keys_lookup_pattern, count=5000):
+        async for k in redis0.iscan(match=KEYS_LOOKUP_PATTERN, count=5000):
             print(
                 'REDIS-0 DELETE KEY', k,
                 await redis0.type(k), await redis0.ttl(k),
                 await redis0.delete(k)
             )
 
-        async for k in redis1.iscan(match=keys_lookup_pattern, count=5000):
+        async for k in redis1.iscan(match=KEYS_LOOKUP_PATTERN, count=5000):
             print(
                 'REDIS-1 DELETE KEY', k,
                 await redis1.type(k), await redis1.ttl(k),
