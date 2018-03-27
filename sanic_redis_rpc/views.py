@@ -8,7 +8,7 @@ from sanic_redis_rpc.rpc import exceptions
 from sanic_redis_rpc.redis_rpc import RedisRpc
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 from sanic_redis_rpc.signature_serializer import SignatureSerializer
-from sanic_redis_rpc.key_manager import KeyManager, KeyManagerRequestProxy
+from sanic_redis_rpc.key_manager import KeyManagerRequestProxy
 
 sanic_redis_rpc_bp = bp = Blueprint('sanic-redis-rpc')
 
