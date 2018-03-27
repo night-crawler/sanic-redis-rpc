@@ -1,6 +1,5 @@
 import aioredis
 import pytest
-from aioredis.util import _NOTSET
 from sanic_redis_rpc.signature_serializer import SignatureSerializer
 
 

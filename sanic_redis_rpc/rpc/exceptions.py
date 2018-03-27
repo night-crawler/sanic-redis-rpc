@@ -8,7 +8,7 @@ class RpcError(SanicException):
     ERROR_CODE = -32000
 
     def __init__(self, id=None, data=None, message=None, error_code=ERROR_CODE):
-        super(RpcError, self).__init__(message or self.MESSAGE, status_code=200)
+        super().__init__(message or self.MESSAGE, status_code=200)
         self.message = message or self.MESSAGE
         self.error_code = error_code
         self.data = data

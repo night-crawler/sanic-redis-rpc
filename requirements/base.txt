@@ -6,3 +6,4 @@ hiredis
 aioredis
 ujson
 sanic-cors
+sortedcontainers

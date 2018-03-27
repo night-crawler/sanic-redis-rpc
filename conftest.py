@@ -25,6 +25,12 @@ def app(loop):
 
 # noinspection PyShadowingNames
 @pytest.fixture
+def get_redis(app):
+    return app._pools_wrapper.get_redis
+
+
+# noinspection PyShadowingNames
+@pytest.fixture
 def test_cli(loop, app, test_client):
     return loop.run_until_complete(test_client(app, protocol=WebSocketProtocol))
 
