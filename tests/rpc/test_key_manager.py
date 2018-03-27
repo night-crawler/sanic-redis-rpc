@@ -16,6 +16,7 @@ comb_parts = sorted({
     'chicken'
 })
 
+keys_lookup_pattern = 'sanic-redis-rpc*'
 mk_key = lambda combination: 'sanic-redis-rpc-test:%s' % ':'.join(combination)
 all_combinations = list(permutations(comb_parts, 4))
 all_keys = sorted(mk_key(c) for c in all_combinations)
@@ -69,7 +70,7 @@ class KeyManagerTest:
 
     async def test__get_sorted_keys(self, key_manager):
         km = await key_manager
-        sorted_keys = await km._get_sorted_keys('sanic-redis-rpc-test:*')
+        sorted_keys = await km._get_sorted_keys(keys_lookup_pattern)
         assert len(sorted_keys) >= len(all_combinations)
 
         for natively_sorted_item, sorted_set_item in zip(sorted(list(sorted_keys)), list(sorted_keys)):
@@ -77,7 +78,7 @@ class KeyManagerTest:
 
     async def test__get_page__sorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=True, ttl_seconds=10)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=10)
 
         page = await km.get_page(search_id, 1, 10)
         assert len(page) == 10
@@ -93,7 +94,7 @@ class KeyManagerTest:
 
     async def test__get_page__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=False, ttl_seconds=10)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=False, ttl_seconds=10)
         page = await km.get_page(search_id, 1, 10)
         assert len(page) == 10
 
@@ -111,15 +112,15 @@ class KeyManagerTest:
         with pytest.raises(WrongPageSizeError):
             await km.get_page('qwe', 1, 0)
 
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=True, ttl_seconds=10)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=10)
         with pytest.raises(PageNotFoundError):
             await km.get_page(search_id, 1000000000, 10)
 
     async def test___load_more(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=False, ttl_seconds=10)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=False, ttl_seconds=10)
 
-        await km._load_more(search_id, 'sanic-redis-rpc-test:*', 0, 10)
+        await km._load_more(search_id, keys_lookup_pattern, 0, 10)
 
         results_key = km._mk_results_key(search_id)
         loaded_keys = await km.service_redis.lrange(results_key, 0, -1, encoding='utf8')
@@ -127,7 +128,7 @@ class KeyManagerTest:
 
         # retrieve a new info object with new cursor
         info = await km.get_search_info(search_id)
-        await km._load_more(search_id, 'sanic-redis-rpc-test:*', info['cursor'], 25)
+        await km._load_more(search_id, keys_lookup_pattern, info['cursor'], 25)
         loaded_keys = await km.service_redis.lrange(results_key, 0, -1, encoding='utf8')
         assert len(loaded_keys) >= 25
 
@@ -141,7 +142,7 @@ class KeyManagerTest:
     async def test__paginate(self, key_manager):
         km: KeyManager = await key_manager
 
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=True, ttl_seconds=2)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=2)
         search_key = km._mk_search_key(search_id)
         assert search_id
         assert (await km.service_redis.ttl(search_key)) >= 1, \
@@ -153,7 +154,7 @@ class KeyManagerTest:
 
     async def test__paginate__sorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=True, ttl_seconds=2)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=2)
 
         info = await km.get_search_info(search_id)
         assert info['sorted'] == 1
@@ -165,7 +166,7 @@ class KeyManagerTest:
 
     async def test__paginate__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=False, ttl_seconds=2)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=False, ttl_seconds=2)
 
         info = await km.get_search_info(search_id)
         assert info['sorted'] == 0
@@ -175,7 +176,7 @@ class KeyManagerTest:
 
     async def test__get_search_info(self, key_manager):
         km: KeyManager = await key_manager
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=True, ttl_seconds=1)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=1)
         info = await km.get_search_info(search_id)
         assert type(info['cursor']) == int
         assert type(info['sorted']) == int
@@ -187,12 +188,12 @@ class KeyManagerTest:
 
     async def test__get_match_count(self, key_manager):
         km = await key_manager
-        assert await km._get_match_count('sanic-redis-rpc*') >= len(all_combinations)
+        assert await km._get_match_count(keys_lookup_pattern) >= len(all_combinations)
 
     async def test__refresh_ttl(self, key_manager):
         km: KeyManager = await key_manager
 
-        search_id = await km.paginate('sanic-redis-rpc-test:*', sort_keys=True, ttl_seconds=1)
+        search_id = await km.paginate(keys_lookup_pattern, sort_keys=True, ttl_seconds=1)
         refresh_result = await km.refresh_ttl(search_id, 20)
         assert refresh_result == [True, True]
         assert await km.service_redis.ttl(km._mk_search_key(search_id)) >= 19, \
@@ -210,14 +211,14 @@ class KeyManagerTest:
     async def test__cleanup(self, get_redis):
         redis0: aioredis.Redis = await get_redis('redis_0')
         redis1: aioredis.Redis = await get_redis('redis_1')
-        async for k in redis0.iscan(match='sanic-redis-rpc*', count=5000):
+        async for k in redis0.iscan(match=keys_lookup_pattern, count=5000):
             print(
                 'REDIS-0 DELETE KEY', k,
                 await redis0.type(k), await redis0.ttl(k),
                 await redis0.delete(k)
             )
 
-        async for k in redis1.iscan(match='sanic-redis-rpc*', count=5000):
+        async for k in redis1.iscan(match=keys_lookup_pattern, count=5000):
             print(
                 'REDIS-1 DELETE KEY', k,
                 await redis1.type(k), await redis1.ttl(k),
