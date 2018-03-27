@@ -5,9 +5,8 @@ from uuid import uuid4
 import aioredis
 from sortedcontainers import SortedSet
 
-from sanic_redis_rpc.exceptions import SearchIdNotFoundError, WrongPageSizeError, WrongNumberError, PageNotFoundError
-
-RedisOrPool = t.Union[aioredis.Redis, aioredis.ConnectionsPool]
+from sanic_redis_rpc.key_manager.exceptions import SearchIdNotFoundError, WrongPageSizeError, WrongNumberError, \
+    PageNotFoundError
 
 
 def chunks(l, n):
@@ -34,7 +33,7 @@ class KeyManager:
     '''
 
     def __init__(
-            self, redis: RedisOrPool, service_redis: RedisOrPool,
+            self, redis: aioredis.Redis, service_redis: aioredis.Redis,
             scan_count: int = 5000,
             service_key_prefix: str = 'sanic-redis-rpc'):
         self.redis = redis
@@ -43,7 +42,11 @@ class KeyManager:
         self.scan_count = scan_count
         self.service_key_prefix = service_key_prefix
 
-    async def paginate(self, pattern: str = '*', sort_keys: bool = True, ttl_seconds: int = 5 * 60):
+    async def paginate(
+            self,
+            pattern: str = '*',
+            sort_keys: bool = True,
+            ttl_seconds: int = 5 * 60) -> t.Dict[str, t.Union[str, int]]:
         search_id = uuid4().hex
         search_key = self._mk_search_key(search_id)
         results_key = self._mk_results_key(search_id)
@@ -75,9 +78,10 @@ class KeyManager:
         transaction.expire(results_key, ttl_seconds)
         await transaction.execute()
 
-        return search_id
+        return search_bundle
 
     async def get_page(self, search_id: str, page_num: int, page_size: int = 1000) -> t.List[str]:
+        page_num, page_size = int(page_num), int(page_size)
         if not (page_size > 0):
             raise WrongPageSizeError(page_size)
         if not (page_num >= 1):
@@ -106,6 +110,25 @@ class KeyManager:
 
         keys = await self.service_redis.lrange(results_key, start, finish, encoding='utf8')
         return keys
+
+    async def refresh_ttl(self, search_id: str, ttl_seconds: int = 5 * 60):
+        search_key = self._mk_search_key(search_id)
+        results_key = self._mk_results_key(search_id)
+        pipe = self.service_redis.pipeline()
+        pipe.expire(search_key, ttl_seconds)
+        pipe.expire(results_key, ttl_seconds)
+        return await pipe.execute()
+
+    async def get_search_info(self, search_id: str) -> t.Dict[str, t.Union[str, int]]:
+        search_key = self._mk_search_key(search_id)
+        info_bundle = await self.service_redis.hgetall(search_key, encoding='utf8')
+        if not info_bundle:
+            raise SearchIdNotFoundError(search_id)
+
+        for k in ['sorted', 'ttl_seconds', 'count', 'cursor']:
+            info_bundle[k] = int(info_bundle[k])
+
+        return info_bundle
 
     async def _load_more(self, search_id: str, pattern: str, cursor: int, finish: int):
         """
@@ -142,25 +165,6 @@ class KeyManager:
 
         transaction.hset(search_key, 'cursor', cur)
         return await transaction.execute()
-
-    async def refresh_ttl(self, search_id: str, ttl_seconds: int = 5 * 60):
-        search_key = self._mk_search_key(search_id)
-        results_key = self._mk_results_key(search_id)
-        pipe = self.service_redis.pipeline()
-        pipe.expire(search_key, ttl_seconds)
-        pipe.expire(results_key, ttl_seconds)
-        return await pipe.execute()
-
-    async def get_search_info(self, search_id: str) -> t.Dict[str, t.Union[str, int]]:
-        search_key = self._mk_search_key(search_id)
-        info_bundle = await self.service_redis.hgetall(search_key, encoding='utf8')
-        if not info_bundle:
-            raise SearchIdNotFoundError(search_id)
-
-        for k in ['sorted', 'ttl_seconds', 'count', 'cursor']:
-            info_bundle[k] = int(info_bundle[k])
-
-        return info_bundle
 
     async def _get_match_count(self, pattern: str = '*') -> int:
         pattern = pattern.replace('"', r'\"')

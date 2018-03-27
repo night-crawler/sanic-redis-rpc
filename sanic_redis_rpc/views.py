@@ -8,6 +8,7 @@ from sanic_redis_rpc.rpc import exceptions
 from sanic_redis_rpc.redis_rpc import RedisRpc
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 from sanic_redis_rpc.signature_serializer import SignatureSerializer
+from sanic_redis_rpc.key_manager import KeyManager, KeyManagerRequestProxy
 
 sanic_redis_rpc_bp = bp = Blueprint('sanic-redis-rpc')
 
@@ -44,6 +45,46 @@ async def status(request: Request):
 async def inspect(request: Request):
     return json(
         SignatureSerializer(aioredis.Redis('fake')).to_dict()
+    )
+
+
+@bp.route('/keys/paginate/<redis_name>', methods=['POST', 'OPTIONS'])
+async def paginate(request: Request, redis_name: str):
+    if request.method == 'OPTIONS':
+        return json({})
+
+    return json(
+        await KeyManagerRequestProxy(request, redis_name).paginate()
+    )
+
+
+@bp.route('/keys/paginate/refresh-ttl/<search_id>', methods=['POST', 'OPTIONS'])
+async def refresh_ttl(request: Request, search_id: str):
+    if request.method == 'OPTIONS':
+        return json({})
+
+    return json(
+        await KeyManagerRequestProxy(request, None).refresh_ttl(search_id)
+    )
+
+
+@bp.route('/keys/paginate/<search_id>/page/<page_num>', methods=['GET', 'OPTIONS'])
+async def get_page(request: Request, search_id: str, page_num: int):
+    if request.method == 'OPTIONS':
+        return json({})
+
+    return json(
+        await KeyManagerRequestProxy(request, None).get_page(search_id, page_num)
+    )
+
+
+@bp.route('/keys/paginate/info/<search_id>', methods=['GET', 'OPTIONS'])
+async def get_search_info(request: Request, search_id: str):
+    if request.method == 'OPTIONS':
+        return json({})
+
+    return json(
+        await KeyManagerRequestProxy(request, None).get_search_info(search_id)
     )
 
 

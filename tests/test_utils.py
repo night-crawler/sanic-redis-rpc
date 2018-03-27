@@ -19,5 +19,6 @@ class UtilsTest:
                    'minsize': 1,
                    'maxsize': 10,
                    'name': 'vasya',
-                   'display_name': ''
+                   'display_name': '',
+                   'service': False,
                }

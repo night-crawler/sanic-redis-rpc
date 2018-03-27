@@ -37,6 +37,35 @@ class RedisPoolsShareWrapper:
         self._redis_map: t.Dict[str, aioredis.Redis] = {}
         self._loop = loop
 
+    async def get_redis(self, pool_name: str) -> aioredis.Redis:
+        redis: aioredis.Redis = self._redis_map.get(pool_name, None)
+        if redis is not None:
+            return redis
+        pool = await self._get_pool(pool_name)
+        self._redis_map[pool_name] = aioredis.Redis(pool)
+        return self._redis_map[pool_name]
+
+    async def get_service_redis(self) -> aioredis.Redis:
+        pool_name = self._get_service_pool_name()
+        return await self.get_redis(pool_name)
+
+    async def get_status(self) -> t.List[t.Dict[str, t.Any]]:
+        res = []
+        for pool_name, opts in self._redis_connections_options.items():
+            pool = await self._get_pool(pool_name)
+            bundle = {k: v for k, v in opts.items() if k in self.SAFE_STATUS_KEYS}
+            bundle.update({
+                attr: getattr(pool, attr)
+                for attr in ['encoding', 'freesize', 'maxsize', 'minsize', 'closed', 'size']
+            })
+            res.append(bundle)
+        return res
+
+    async def close(self):
+        for pool in self._pool_map.values():
+            pool.close()
+            await pool.wait_closed()
+
     async def _initialize_pools(self):
         for pool_name in self._redis_connections_options.keys():
             await self._get_pool(pool_name)
@@ -57,27 +86,9 @@ class RedisPoolsShareWrapper:
             loop=self._loop
         )
 
-    async def get_redis(self, pool_name: str) -> aioredis.Redis:
-        redis: aioredis.Redis = self._redis_map.get(pool_name, None)
-        if redis is not None:
-            return redis
-        pool = await self._get_pool(pool_name)
-        self._redis_map[pool_name] = aioredis.Redis(pool)
-        return self._redis_map[pool_name]
-
-    async def get_status(self) -> t.List[t.Dict[str, t.Any]]:
-        res = []
+    def _get_service_pool_name(self):
         for pool_name, opts in self._redis_connections_options.items():
-            pool = await self._get_pool(pool_name)
-            bundle = {k: v for k, v in opts.items() if k in self.SAFE_STATUS_KEYS}
-            bundle.update({
-                attr: getattr(pool, attr)
-                for attr in ['encoding', 'freesize', 'maxsize', 'minsize', 'closed', 'size']
-            })
-            res.append(bundle)
-        return res
+            if opts['service']:
+                return pool_name
 
-    async def close(self):
-        for pool in self._pool_map.values():
-            pool.close()
-            await pool.wait_closed()
+        return list(self._redis_connections_options.keys())[0]

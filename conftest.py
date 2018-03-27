@@ -23,7 +23,7 @@ def app(loop):
     yield _app
 
 
-# noinspection PyShadowingNames
+# noinspection PyShadowingNames,PyProtectedMember
 @pytest.fixture
 def get_redis(app):
     return app._pools_wrapper.get_redis
