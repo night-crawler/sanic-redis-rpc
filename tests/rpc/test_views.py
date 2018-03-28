@@ -95,7 +95,6 @@ class BlueprintTest:
         assert resp.status == 200
         resp_json = await resp.json()
         assert len(resp_json['results']) == 1
-        print(resp_json)
 
     async def test__get_search_info(self, app: Sanic, test_cli, search_id):
         sid = await search_id
