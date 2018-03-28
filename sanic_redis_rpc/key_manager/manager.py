@@ -1,4 +1,5 @@
 import typing as t
+from asyncio import gather
 from datetime import datetime
 from uuid import uuid4
 
@@ -46,7 +47,7 @@ class KeyManager:
             self,
             pattern: str = '*',
             sort_keys: bool = True,
-            ttl_seconds: int = 5 * 60) -> t.Dict[str, t.Union[str, int]]:
+            ttl_seconds: int = 5 * 60) -> t.Dict[str, t.Union[str, t.Any]]:
         search_id = uuid4().hex
         search_key = self._mk_search_key(search_id)
         results_key = self._mk_results_key(search_id)
@@ -80,23 +81,25 @@ class KeyManager:
 
         return search_bundle
 
-    async def get_page(self, search_id: str, page_num: int, page_size: int = 1000) -> t.List[str]:
-        page_num, page_size = int(page_num), int(page_size)
-        if not (page_size > 0):
-            raise WrongPageSizeError(page_size)
-        if not (page_num >= 1):
-            raise WrongNumberError(page_num)
+    async def get_page(self, search_id: str, page_number: int, per_page: int = 1000) -> t.List[str]:
+        page_number, per_page = int(page_number), int(per_page)
+        if not (per_page > 0):
+            raise WrongPageSizeError(per_page)
+        if not (page_number >= 1):
+            raise WrongNumberError(page_number)
 
-        info = await self.get_search_info(search_id)
-        await self.refresh_ttl(search_id)
+        info, __skip = await gather(
+            self.get_search_info(search_id),
+            self.refresh_ttl(search_id)
+        )
 
         results_key, count, cursor, pattern = info['results_key'], info['count'], info['cursor'], info['pattern']
 
         if count <= 0:
             return []
 
-        start = (page_num - 1) * page_size
-        finish = start + page_size - 1  # the rightmost item is included
+        start = (page_number - 1) * per_page
+        finish = start + per_page - 1  # the rightmost item is included
 
         if start > count:
             raise PageNotFoundError(
@@ -119,7 +122,7 @@ class KeyManager:
         pipe.expire(results_key, ttl_seconds)
         return await pipe.execute()
 
-    async def get_search_info(self, search_id: str) -> t.Dict[str, t.Union[str, int]]:
+    async def get_search_info(self, search_id: str) -> t.Dict[str, t.Any]:
         search_key = self._mk_search_key(search_id)
         info_bundle = await self.service_redis.hgetall(search_key, encoding='utf8')
         if not info_bundle:

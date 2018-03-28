@@ -70,7 +70,12 @@ class BlueprintTest:
         assert type(resp_json['count']) is int
         assert 'results_key' in resp_json
 
-    async def test__refresh_ttl(self, search_id, app: Sanic, test_cli, rpc):
+        assert 'urls' in resp_json
+        assert 'get_page' in resp_json['urls']
+        assert 'refresh_ttl' in resp_json['urls']
+        assert 'get_search_info' in resp_json['urls']
+
+    async def test__refresh_ttl(self, search_id, app: Sanic, test_cli):
         search_id = await search_id
 
         resp = await test_cli.post(
@@ -85,11 +90,12 @@ class BlueprintTest:
         sid = await search_id
 
         resp = await test_cli.get(
-            app.url_for('sanic-redis-rpc.get_page', search_id=sid, page_num=1, page_size=1)
+            app.url_for('sanic-redis-rpc.get_page', search_id=sid, page_number=1, per_page=1)
         )
         assert resp.status == 200
         resp_json = await resp.json()
-        assert len(resp_json) == 1
+        assert len(resp_json['results']) == 1
+        print(resp_json)
 
     async def test__get_search_info(self, app: Sanic, test_cli, search_id):
         sid = await search_id

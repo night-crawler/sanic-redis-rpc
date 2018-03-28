@@ -68,13 +68,13 @@ async def refresh_ttl(request: Request, search_id: str):
     )
 
 
-@bp.route('/keys/paginate/<search_id>/page/<page_num>', methods=['GET', 'OPTIONS'])
-async def get_page(request: Request, search_id: str, page_num: int):
+@bp.route('/keys/paginate/<search_id>/page/<page_number>', methods=['GET', 'OPTIONS'])
+async def get_page(request: Request, search_id: str, page_number: int):
     if request.method == 'OPTIONS':
         return json({})
 
     return json(
-        await KeyManagerRequestAdapter(request, None).get_page(search_id, page_num)
+        await KeyManagerRequestAdapter(request, None).get_page(search_id, page_number)
     )
 
 

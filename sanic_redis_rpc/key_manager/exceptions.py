@@ -9,17 +9,17 @@ class SearchIdNotFoundError(SanicException):
 
 
 class WrongPageSizeError(InvalidUsage):
-    MESSAGE = 'Page size must be a positive integer but you passed {page_size}'
+    MESSAGE = 'Page size must be a positive integer but you passed {per_page}'
 
-    def __init__(self, page_size):
-        super().__init__(self.MESSAGE.format(page_size=page_size))
+    def __init__(self, per_page):
+        super().__init__(self.MESSAGE.format(per_page=per_page))
 
 
 class WrongNumberError(InvalidUsage):
-    MESSAGE = 'Page number must be an integer >= 1 and <= count but you passed {page_num}'
+    MESSAGE = 'Page number must be an integer >= 1 and <= count but you passed {page_number}'
 
-    def __init__(self, page_num):
-        super().__init__(self.MESSAGE.format(page_num=page_num))
+    def __init__(self, page_number):
+        super().__init__(self.MESSAGE.format(page_number=page_number))
 
 
 class PageNotFoundError(NotFound):
