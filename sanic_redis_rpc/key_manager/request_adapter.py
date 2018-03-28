@@ -6,7 +6,7 @@ from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 from .manager import KeyManager
 
 
-class KeyManagerRequestProxy:
+class KeyManagerRequestAdapter:
     # noinspection PyProtectedMember
     def __init__(self, request: Request, redis_name: t.Optional[str] = None):
         self.request: Request = request

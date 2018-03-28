@@ -8,7 +8,7 @@ from sanic_redis_rpc.rpc import exceptions
 from sanic_redis_rpc.redis_rpc import RedisRpc
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 from sanic_redis_rpc.signature_serializer import SignatureSerializer
-from sanic_redis_rpc.key_manager import KeyManagerRequestProxy
+from sanic_redis_rpc.key_manager import KeyManagerRequestAdapter
 
 sanic_redis_rpc_bp = bp = Blueprint('sanic-redis-rpc')
 
@@ -54,7 +54,7 @@ async def paginate(request: Request, redis_name: str):
         return json({})
 
     return json(
-        await KeyManagerRequestProxy(request, redis_name).paginate()
+        await KeyManagerRequestAdapter(request, redis_name).paginate()
     )
 
 
@@ -64,7 +64,7 @@ async def refresh_ttl(request: Request, search_id: str):
         return json({})
 
     return json(
-        await KeyManagerRequestProxy(request, None).refresh_ttl(search_id)
+        await KeyManagerRequestAdapter(request, None).refresh_ttl(search_id)
     )
 
 
@@ -74,7 +74,7 @@ async def get_page(request: Request, search_id: str, page_num: int):
         return json({})
 
     return json(
-        await KeyManagerRequestProxy(request, None).get_page(search_id, page_num)
+        await KeyManagerRequestAdapter(request, None).get_page(search_id, page_num)
     )
 
 
@@ -84,7 +84,7 @@ async def get_search_info(request: Request, search_id: str):
         return json({})
 
     return json(
-        await KeyManagerRequestProxy(request, None).get_search_info(search_id)
+        await KeyManagerRequestAdapter(request, None).get_search_info(search_id)
     )
 
 
