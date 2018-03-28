@@ -10,7 +10,7 @@ async def search_id(app: Sanic, test_cli, rpc):
     await rpc('/', 'redis_0.set', 'something_long:2', 2)
 
     resp = await test_cli.post(
-        app.url_for('sanic-redis-rpc.paginate', redis_name='redis_0'),
+        app.url_for('sanic-redis-rpc.search', redis_name='redis_0'),
         json={'pattern': 'something_long*'}
     )
     assert resp.status == 200
@@ -57,7 +57,7 @@ class BlueprintTest:
         await rpc('/', 'redis_0.set', 'something_long:1', 1)
 
         resp = await test_cli.post(
-            app.url_for('sanic-redis-rpc.paginate', redis_name='redis_0'),
+            app.url_for('sanic-redis-rpc.search', redis_name='redis_0'),
             json={'pattern': 'something_long*'}
         )
         assert resp.status == 200

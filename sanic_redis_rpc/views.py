@@ -38,7 +38,15 @@ async def after_server_stop(app: Sanic, loop):
 async def status(request: Request):
     if request.method == 'OPTIONS':
         return json({})
-    return json(await request.app._pools_wrapper.get_status())
+
+    statuses = await request.app._pools_wrapper.get_status()
+    for status_bundle in statuses:
+        status_bundle['search_url'] = request.app.url_for(
+            'sanic-redis-rpc.search',
+            redis_name=status_bundle['name']
+        )
+
+    return json(statuses)
 
 
 @bp.route('/inspect', methods=['GET'])
@@ -48,17 +56,17 @@ async def inspect(request: Request):
     )
 
 
-@bp.route('/keys/paginate/<redis_name>', methods=['POST', 'OPTIONS'])
-async def paginate(request: Request, redis_name: str):
+@bp.route('/keys/search/<redis_name>', methods=['POST', 'OPTIONS'])
+async def search(request: Request, redis_name: str):
     if request.method == 'OPTIONS':
         return json({})
 
     return json(
-        await KeyManagerRequestAdapter(request, redis_name).paginate()
+        await KeyManagerRequestAdapter(request, redis_name).search()
     )
 
 
-@bp.route('/keys/paginate/refresh-ttl/<search_id>', methods=['POST', 'OPTIONS'])
+@bp.route('/keys/search/refresh-ttl/<search_id>', methods=['POST', 'OPTIONS'])
 async def refresh_ttl(request: Request, search_id: str):
     if request.method == 'OPTIONS':
         return json({})
@@ -68,7 +76,7 @@ async def refresh_ttl(request: Request, search_id: str):
     )
 
 
-@bp.route('/keys/paginate/<search_id>/page/<page_number>', methods=['GET', 'OPTIONS'])
+@bp.route('/keys/search/<search_id>/page/<page_number>', methods=['GET', 'OPTIONS'])
 async def get_page(request: Request, search_id: str, page_number: int):
     if request.method == 'OPTIONS':
         return json({})
@@ -78,7 +86,7 @@ async def get_page(request: Request, search_id: str, page_number: int):
     )
 
 
-@bp.route('/keys/paginate/info/<search_id>', methods=['GET', 'OPTIONS'])
+@bp.route('/keys/search/info/<search_id>', methods=['GET', 'OPTIONS'])
 async def get_search_info(request: Request, search_id: str):
     if request.method == 'OPTIONS':
         return json({})

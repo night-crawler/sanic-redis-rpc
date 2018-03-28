@@ -80,7 +80,7 @@ class KeyManagerTest:
 
     async def test__get_page__sorted(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=10)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=10)
 
         page = await km.get_page(search['id'], 1, 10)
         assert len(page) == 10, 'The count of retrieved items must match the request'
@@ -95,7 +95,7 @@ class KeyManagerTest:
 
     async def test__get_page__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
 
         page = await km.get_page(search['id'], 1, 10)
         assert len(page) == 10
@@ -116,14 +116,14 @@ class KeyManagerTest:
         with pytest.raises(WrongPageSizeError, message='Must raise if page size is not positive'):
             await km.get_page('qwe', 1, 0)
 
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=10)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=10)
         
         with pytest.raises(PageNotFoundError, message='Must raise if requested page is too far from reality'):
             await km.get_page(search['id'], 1000000000, 10)
 
     async def test___load_more(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
 
         await km._load_more(search['id'], KEYS_LOOKUP_PATTERN, 0, 10)
 
@@ -140,14 +140,14 @@ class KeyManagerTest:
     async def test___load_more__no_results(self, key_manager):
         search_pattern = 'kjh5kjlh34kl5h6klj34h5kl6jh3456*'
         km: KeyManager = await key_manager
-        search = await km.paginate(search_pattern, sort_keys=False, ttl_seconds=10)
+        search = await km.search(search_pattern, sort_keys=False, ttl_seconds=10)
         
         # just check if it doesn't hang or fail
         await km._load_more(search['id'], search_pattern, 0, 10)
 
     async def test__paginate(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=2)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=2)
         search_key = km._mk_search_key(search['id'])
         assert search['id']
         assert (await km.service_redis.ttl(search_key)) >= 1, \
@@ -159,7 +159,7 @@ class KeyManagerTest:
 
     async def test__paginate__sorted(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=2)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=2)
 
         info = await km.get_search_info(search['id'])
         assert info['sorted'] == 1
@@ -171,7 +171,7 @@ class KeyManagerTest:
 
     async def test__paginate__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=2)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=2)
 
         info = await km.get_search_info(search['id'])
         assert info['sorted'] == 0
@@ -181,7 +181,7 @@ class KeyManagerTest:
 
     async def test__get_search_info(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=1)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=1)
         info = await km.get_search_info(search['id'])
 
         # check type casting
@@ -199,7 +199,7 @@ class KeyManagerTest:
 
     async def test__refresh_ttl(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.paginate(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=1)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=True, ttl_seconds=1)
         
         refresh_result = await km.refresh_ttl(search['id'], 20)
         assert refresh_result == [True, True]

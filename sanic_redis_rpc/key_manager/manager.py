@@ -43,7 +43,7 @@ class KeyManager:
         self.scan_count = scan_count
         self.service_key_prefix = service_key_prefix
 
-    async def paginate(
+    async def search(
             self,
             pattern: str = '*',
             sort_keys: bool = True,

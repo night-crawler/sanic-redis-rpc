@@ -51,10 +51,10 @@ class KeyManagerRequestAdapter:
             'per_page': int(self.request.args.get('per_page', 1000)),
         }
 
-    async def paginate(self):
+    async def search(self):
         await self._init()
 
-        info = await self.key_manager.paginate(
+        info = await self.key_manager.search(
             self.options['pattern'],
             sort_keys=self.options['sort_keys'],
             ttl_seconds=self.options['ttl_seconds']
