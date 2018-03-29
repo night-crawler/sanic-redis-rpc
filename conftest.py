@@ -5,6 +5,7 @@ from sanic.websocket import WebSocketProtocol
 from sanic_redis_rpc.conf import configure
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 from sanic_redis_rpc.views import sanic_redis_rpc_bp
+from sanic_urls.views import sanic_urls_bp
 from tests.utils import mk_rpc_bundle
 
 
@@ -12,6 +13,7 @@ from tests.utils import mk_rpc_bundle
 def app(loop):
     _app = Sanic('test_sanic_app')
     _app.blueprint(sanic_redis_rpc_bp)
+    _app.blueprint(sanic_urls_bp)
     _app = configure(
         _app,
         {

@@ -108,3 +108,11 @@ class BlueprintTest:
         assert resp_json['cursor'] == -1
         assert resp_json['pattern'] == 'something_long*'
         assert resp_json['ttl_seconds'] == 300
+
+    async def test__urls(self, app: Sanic, test_cli):
+        resp = await test_cli.get(
+            app.url_for('sanic-urls.urls')
+        )
+        assert resp.status == 200
+        resp_json = await resp.json()
+        assert resp_json
