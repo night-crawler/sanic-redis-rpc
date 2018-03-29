@@ -10,5 +10,5 @@ def endpoints(request: Request):
     return json({
         'rpc': request.app.url_for('sanic-redis-rpc.handle_rpc'),
         'status': request.app.url_for('sanic-redis-rpc.status'),
-        'inspect': request.app.url_for('sanic-redis-rpc.inspect'),
+        'inspections': request.app.url_for('sanic-redis-rpc.inspect'),
     })
