@@ -70,10 +70,10 @@ class BlueprintTest:
         assert type(resp_json['count']) is int
         assert 'results_key' in resp_json
 
-        assert 'urls' in resp_json
-        assert 'get_page' in resp_json['urls']
-        assert 'refresh_ttl' in resp_json['urls']
-        assert 'get_search_info' in resp_json['urls']
+        assert 'endpoints' in resp_json
+        assert 'get_page' in resp_json['endpoints']
+        assert 'refresh_ttl' in resp_json['endpoints']
+        assert 'get_search_info' in resp_json['endpoints']
 
     async def test__refresh_ttl(self, search_id, app: Sanic, test_cli):
         search_id = await search_id
@@ -109,9 +109,9 @@ class BlueprintTest:
         assert resp_json['pattern'] == 'something_long*'
         assert resp_json['ttl_seconds'] == 300
 
-    async def test__urls(self, app: Sanic, test_cli):
+    async def test__endpoints(self, app: Sanic, test_cli):
         resp = await test_cli.get(
-            app.url_for('sanic-urls.urls')
+            app.url_for('sanic-endpoints.endpoints')
         )
         assert resp.status == 200
         resp_json = await resp.json()

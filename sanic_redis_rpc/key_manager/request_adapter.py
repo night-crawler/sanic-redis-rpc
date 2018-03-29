@@ -59,7 +59,7 @@ class KeyManagerRequestAdapter:
             sort_keys=self.options['sort_keys'],
             ttl_seconds=self.options['ttl_seconds']
         )
-        info['urls'] = self._get_urls(info['id'])
+        info['endpoints'] = self._get_urls(info['id'])
 
         return info
 
@@ -102,5 +102,5 @@ class KeyManagerRequestAdapter:
         await self._init()
 
         info = await self.key_manager.get_search_info(search_id)
-        info['urls'] = self._get_urls(search_id)
+        info['endpoints'] = self._get_urls(search_id)
         return info
