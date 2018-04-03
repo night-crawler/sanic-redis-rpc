@@ -92,8 +92,18 @@ class KeyManagerRequestAdapter:
         prev_page = page_number - 1 if page_number > 1 else None
 
         return {
-            'next': next_page,
-            'previous': prev_page,
+            'page_number': page_number,
+            'next': self.request.app.url_for(
+                'sanic-redis-rpc.get_page',
+                page_number=next_page,
+                search_id=search_id
+            ) if next_page else None,
+            'previous': self.request.app.url_for(
+                'sanic-redis-rpc.get_page',
+                page_number=prev_page,
+                search_id=search_id
+            ) if prev_page else None,
+            'pattern': info['pattern'],
             'num_pages': num_pages,
             'results': results,
         }
