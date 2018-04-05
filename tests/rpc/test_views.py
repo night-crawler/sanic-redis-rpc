@@ -34,7 +34,7 @@ class BlueprintTest:
         assert res['result'] is True
 
         res = await rpc('/', 'redis_0.get', key='qwe')
-        assert res['result'] == 'MQ=='
+        assert res['result'] == '1'
 
         res = await rpc('/', 'redis_0.get', key='qwe', encoding='utf8')
         assert res['result'] == '1'

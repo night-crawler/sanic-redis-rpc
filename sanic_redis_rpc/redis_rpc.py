@@ -36,7 +36,10 @@ class RedisRpcRequestProcessor(RpcRequestProcessor):
             result = await result
 
         if isinstance(result, bytes):
-            result = base64.standard_b64encode(result).decode()
+            try:
+                result = result.decode('utf8')
+            except UnicodeDecodeError:
+                result = base64.standard_b64encode(result).decode()
 
         return {
             'id': rpc_request.id,
@@ -132,7 +135,10 @@ class RedisRpcBatchProcessor:
                 continue
 
             if isinstance(response, bytes):
-                response = base64.standard_b64encode(response).decode()
+                try:
+                    response = response.decode(encoding='utf8')
+                except UnicodeDecodeError:
+                    response = base64.standard_b64encode(response).decode()
 
             results.append({
                 'id': request.id,
