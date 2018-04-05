@@ -47,7 +47,12 @@ class KeyManager:
             self,
             pattern: str = '*',
             sort_keys: bool = True,
-            ttl_seconds: int = 5 * 60) -> t.Dict[str, t.Union[str, t.Any]]:
+            ttl_seconds: int = 5 * 60,
+            redis_name: str = '') -> t.Dict[str, t.Union[str, t.Any]]:
+
+        if not sort_keys and not redis_name:
+            raise ValueError('With sort_keys == False you must specify the redis_name')
+
         search_id = uuid4().hex
         search_key = self._mk_search_key(search_id)
         results_key = self._mk_results_key(search_id)
@@ -60,6 +65,7 @@ class KeyManager:
             'results_key': results_key,
             'timestamp': datetime.now().isoformat(),
             'count': -1,
+            'redis_name': redis_name,
         }
 
         if sort_keys:

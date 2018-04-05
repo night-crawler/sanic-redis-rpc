@@ -34,6 +34,12 @@ class KeyManagerRequestAdapter:
             scan_count=self.options['scan_count']
         )
 
+    async def _init_redis(self, redis_name: str):
+        # since we know nothing about sort_keys flag at the moment get_page called
+        # we need a way to post-init an actual redis stored by name in search info bundle
+        self.redis: aioredis.Redis = await self.pools_wrapper.get_redis(redis_name)
+        self.key_manager.redis = self.redis
+
     def _get_urls(self, search_id: str) -> t.Dict[str, str]:
         return {
             'get_page': self.request.app.url_for('sanic-redis-rpc.get_page', page_number=1, search_id=search_id),
@@ -57,7 +63,8 @@ class KeyManagerRequestAdapter:
         info = await self.key_manager.search(
             self.options['pattern'],
             sort_keys=self.options['sort_keys'],
-            ttl_seconds=self.options['ttl_seconds']
+            ttl_seconds=self.options['ttl_seconds'],
+            redis_name=self.redis_name
         )
         info['endpoints'] = self._get_urls(info['id'])
 
@@ -77,13 +84,13 @@ class KeyManagerRequestAdapter:
         per_page = self.options['per_page']
         page_number = int(page_number)
 
-        info, results = await gather(
-            self.key_manager.get_search_info(search_id),
-            self.key_manager.get_page(
-                search_id,
-                page_number=page_number,
-                per_page=per_page,
-            )
+        info = await self.key_manager.get_search_info(search_id)
+        await self._init_redis(info['redis_name'])
+
+        results = await self.key_manager.get_page(
+            search_id,
+            page_number=page_number,
+            per_page=per_page,
         )
 
         count = info['count']

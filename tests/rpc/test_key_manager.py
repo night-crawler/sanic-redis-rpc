@@ -95,7 +95,7 @@ class KeyManagerTest:
 
     async def test__get_page__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10, redis_name='redis_0')
 
         page = await km.get_page(search['id'], 1, 10)
         assert len(page) == 10
@@ -123,7 +123,7 @@ class KeyManagerTest:
 
     async def test___load_more(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=10, redis_name='redis_0')
 
         await km._load_more(search['id'], KEYS_LOOKUP_PATTERN, 0, 10)
 
@@ -131,7 +131,7 @@ class KeyManagerTest:
         loaded_keys = await km.service_redis.lrange(results_key, 0, -1, encoding='utf8')
         assert len(loaded_keys) >= 10, 'Loaded key count cannot be less than requested'
 
-        # retrieve a new info object with new cursor
+        # retrieve a new info object with a new cursor
         info = await km.get_search_info(search['id'])
         await km._load_more(search['id'], KEYS_LOOKUP_PATTERN, info['cursor'], 25)
         loaded_keys = await km.service_redis.lrange(results_key, 0, -1, encoding='utf8')
@@ -140,7 +140,7 @@ class KeyManagerTest:
     async def test___load_more__no_results(self, key_manager):
         search_pattern = 'kjh5kjlh34kl5h6klj34h5kl6jh3456*'
         km: KeyManager = await key_manager
-        search = await km.search(search_pattern, sort_keys=False, ttl_seconds=10)
+        search = await km.search(search_pattern, sort_keys=False, ttl_seconds=10, redis_name='redis_0')
         
         # just check if it doesn't hang or fail
         await km._load_more(search['id'], search_pattern, 0, 10)
@@ -171,7 +171,7 @@ class KeyManagerTest:
 
     async def test__paginate__unsorted(self, key_manager):
         km: KeyManager = await key_manager
-        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=2)
+        search = await km.search(KEYS_LOOKUP_PATTERN, sort_keys=False, ttl_seconds=2, redis_name='redis_0')
 
         info = await km.get_search_info(search['id'])
         assert info['sorted'] == 0

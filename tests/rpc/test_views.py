@@ -116,3 +116,29 @@ class BlueprintTest:
         assert resp.status == 200
         resp_json = await resp.json()
         assert resp_json
+
+
+# noinspection PyMethodMayBeStatic
+class BugsTest:
+    pytestmark = [pytest.mark.get_page_unknown_redis_with_sort_keys_false, pytest.mark.bugs]
+
+    async def test_case_001(self, rpc, test_cli, app: Sanic):
+        """
+        get_page must no fail when retrieving pages from searches with sort_keys == False.
+        """
+        await rpc('/', 'redis_0.set', 'something_long:1', 1)
+        await rpc('/', 'redis_0.set', 'something_long:2', 2)
+
+        resp = await test_cli.post(
+            app.url_for('sanic-redis-rpc.search', redis_name='redis_0'),
+            json={'pattern': 'something_long*', 'sort_keys': False}
+        )
+        resp_json = await resp.json()
+        sid = resp_json['id']
+
+        resp = await test_cli.get(
+            app.url_for('sanic-redis-rpc.get_page', search_id=sid, page_number=1, per_page=1)
+        )
+        assert resp.status == 200
+        resp_json = await resp.json()
+        assert resp_json
