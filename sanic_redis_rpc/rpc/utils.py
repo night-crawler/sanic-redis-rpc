@@ -1,10 +1,10 @@
 import typing as t
-from collections import OrderedDict
 from ujson import loads as json_loads
 
 import aioredis
 
 from sanic_redis_rpc.rpc import exceptions
+from sanic_redis_rpc.rpc.custom_redis import CustomRedis
 
 
 def load_json(body):
@@ -42,7 +42,7 @@ class RedisPoolsShareWrapper:
         if redis is not None:
             return redis
         pool = await self._get_pool(pool_name)
-        self._redis_map[pool_name] = aioredis.Redis(pool)
+        self._redis_map[pool_name] = CustomRedis(pool)
         return self._redis_map[pool_name]
 
     async def get_service_redis(self) -> aioredis.Redis:

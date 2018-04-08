@@ -6,6 +6,7 @@ from sanic.response import json
 
 from sanic_redis_rpc.rpc import exceptions
 from sanic_redis_rpc.redis_rpc import RedisRpc
+from sanic_redis_rpc.rpc.custom_redis import CustomRedis
 from sanic_redis_rpc.rpc.utils import RedisPoolsShareWrapper
 from sanic_redis_rpc.signature_serializer import SignatureSerializer
 from sanic_redis_rpc.key_manager import KeyManagerRequestAdapter
@@ -52,7 +53,7 @@ async def status(request: Request):
 @bp.route('/inspect', methods=['GET'])
 async def inspect(request: Request):
     return json(
-        SignatureSerializer(aioredis.Redis('fake')).to_dict()
+        SignatureSerializer(CustomRedis('fake')).to_dict()
     )
 
 
