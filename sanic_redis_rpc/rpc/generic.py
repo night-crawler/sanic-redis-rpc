@@ -165,7 +165,13 @@ class RpcRequestProcessor:
 
             elif parameter.kind is Parameter.POSITIONAL_OR_KEYWORD:
                 if value is Parameter.empty:
-                    raise TypeError(f'You must specify `{name}` argument')
+                    # should not raise here
+                    # raise TypeError(f'You must specify `{name}` argument')
+                    # Example:
+                    #     def srem(self, key, member, *members):
+                    # User may want to specify only ``members`` arg and it's ok for this signature
+                    # If something is incorrect Signature.bind should perform a final check
+                    continue
                 args.append(value)
 
             elif parameter.kind is Parameter.VAR_POSITIONAL:
