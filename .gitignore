@@ -17,3 +17,4 @@ tests/test_app/migrations
 consul
 tests/test.sqlite
 .pytest_cache
+.vscode

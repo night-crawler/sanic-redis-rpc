@@ -40,7 +40,7 @@ def coerce_str_to_bool(val: t.Union[str, int, bool, None], strict: bool = False)
         return flag
 
     if strict:
-        raise ValueError('Unsupported value for boolean flag: `%s`' % val)
+        raise ValueError(f'Unsupported value for boolean flag: `{val}`')
 
     return bool(val)
 
